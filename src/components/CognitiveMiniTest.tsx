@@ -7,9 +7,11 @@ const WORDS = ["EMBER", "CEDAR", "RIVER", "CLOUD", "STONE", "FLORA", "LUNAR", "P
 
 export default function CognitiveMiniTest({
   bestMs,
+  baselineMs,
   onComplete,
 }: {
   bestMs: number | null;
+  baselineMs: number | null;
   onComplete: (reactionMs: number, memoryCorrect: boolean) => void;
 }) {
   const [stage, setStage] = useState<"idle" | "memorize" | "wait" | "click" | "recall" | "done">("idle");
@@ -57,27 +59,39 @@ export default function CognitiveMiniTest({
     }
   };
 
+  const deltaPct =
+    reactionMs !== null && baselineMs !== null && baselineMs > 0
+      ? Math.round(((baselineMs - reactionMs) / baselineMs) * 100)
+      : null;
+
   return (
     <div className="bg-white/85 border border-[#E3DDD2] rounded-2xl p-6 space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <Brain className="w-4 h-4 text-[#2F5D50]" />
           <h3 className="font-serif text-lg font-medium text-[#1C1F1D]">
             20-Sec Reaction &amp; Recall
           </h3>
         </div>
-        {bestMs !== null && (
-          <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-[#EFECE6] text-[#4F5551]">
-            Best: {bestMs}ms
-          </span>
-        )}
+        <div className="flex items-center gap-1.5">
+          {baselineMs !== null && (
+            <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-[#F7F5F0] border border-[#E3DDD2] text-[#2F5D50]">
+              14d Base: {baselineMs}ms
+            </span>
+          )}
+          {bestMs !== null && (
+            <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-[#EFECE6] text-[#4F5551]">
+              Best: {bestMs}ms
+            </span>
+          )}
+        </div>
       </div>
 
       {stage === "idle" && (
         <div className="space-y-3">
           <p className="text-xs sm:text-sm text-[#5A605C] leading-relaxed">
             Memorize a 5-letter word, tap as soon as the card turns botanical green,
-            then recall the word. (+25 XP)
+            then recall the word. Calibrated against your 14-day baseline. (+25 XP)
           </p>
           <button
             type="button"
@@ -140,16 +154,21 @@ export default function CognitiveMiniTest({
 
       {stage === "done" && (
         <div className="p-4 rounded-xl bg-[#F7F5F0] border border-[#E3DDD2] flex items-center justify-between gap-4">
-          <div>
+          <div className="space-y-0.5">
             <p className="font-serif text-base font-medium text-[#1C1F1D]">
-              {reactionMs}ms · {memoryCorrect ? "Word recalled" : `Word was ${targetWord}`}
-            </p>
-            <p className="text-xs text-[#2F5D50] font-medium">+25 XP logged</p>
+              {reactionMs}ms · {memoryCorrect ? "Word recalled" : `Word was ${targetWord}`} </p> {deltaPct !== null ? ( <p className="text-xs text-[#2F5D50] font-medium"> {deltaPct >= 0 ? `${deltaPct}% faster than your 14-day baseline`
+                  : `${Math.abs(deltaPct)}% slower than your 14-day baseline (normal variance)`}
+              </p>
+            ) : (
+              <p className="text-xs text-[#2F5D50] font-medium">
+                Baseline calibrated (+25 XP)
+              </p>
+            )}
           </div>
           <button
             type="button"
             onClick={startTest}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-[#D5CEC2] bg-white text-xs font-semibold hover:border-[#1C1F1D] transition cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-[#D5CEC2] bg-white text-xs font-semibold hover:border-[#1C1F1D] transition cursor-pointer shrink-0"
           >
             <RotateCcw className="w-3.5 h-3.5" /> Again
           </button>

@@ -12,9 +12,11 @@ const COLORS = [
 
 export default function StroopGame({
   bestScore,
+  baselineScore,
   onComplete,
 }: {
   bestScore: number | null;
+  baselineScore: number | null;
   onComplete: (score: number) => void;
 }) {
   const [running, setRunning] = useState(false);
@@ -71,27 +73,39 @@ export default function StroopGame({
     nextPrompt();
   };
 
+  const deltaPct =
+    baselineScore !== null && baselineScore > 0
+      ? Math.round(((score - baselineScore) / baselineScore) * 100)
+      : null;
+
   return (
     <div className="bg-white/85 border border-[#E3DDD2] rounded-2xl p-6 space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <Zap className="w-4 h-4 text-[#2F5D50]" />
           <h3 className="font-serif text-lg font-medium text-[#1C1F1D]">
             15-Sec Stroop Sprint
           </h3>
         </div>
-        {bestScore !== null && (
-          <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-[#EFECE6] text-[#4F5551]">
-            Best: {bestScore} pts
-          </span>
-        )}
+        <div className="flex items-center gap-1.5">
+          {baselineScore !== null && (
+            <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-[#F7F5F0] border border-[#E3DDD2] text-[#2F5D50]">
+              14d Base: {baselineScore}
+            </span>
+          )}
+          {bestScore !== null && (
+            <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-[#EFECE6] text-[#4F5551]">
+              Best: {bestScore}
+            </span>
+          )}
+        </div>
       </div>
 
       {!running && !finished && (
         <div className="space-y-3">
           <p className="text-xs sm:text-sm text-[#5A605C] leading-relaxed">
             Tap the <strong>ink color</strong> of the word—not what the word
-            spells—as many times as you can in 15 seconds. (+20 XP)
+            spells—in 15 seconds. Tracked against your 14-day baseline. (+20 XP)
           </p>
           <button
             type="button"
@@ -134,16 +148,26 @@ export default function StroopGame({
 
       {finished && (
         <div className="p-4 rounded-xl bg-[#F7F5F0] border border-[#E3DDD2] flex items-center justify-between gap-4">
-          <div>
+          <div className="space-y-0.5">
             <p className="font-serif text-base font-medium text-[#1C1F1D]">
               Score: {score} correct in 15s
             </p>
-            <p className="text-xs text-[#2F5D50] font-medium">+20 XP logged</p>
+            {deltaPct !== null ? (
+              <p className="text-xs text-[#2F5D50] font-medium">
+                {deltaPct >= 0
+                  ? `+${deltaPct}% above your 14-day baseline`
+                  : `${Math.abs(deltaPct)}% below your 14-day baseline`}
+              </p>
+            ) : (
+              <p className="text-xs text-[#2F5D50] font-medium">
+                Baseline calibrated (+20 XP)
+              </p>
+            )}
           </div>
           <button
             type="button"
             onClick={start}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-[#D5CEC2] bg-white text-xs font-semibold hover:border-[#1C1F1D] transition cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-[#D5CEC2] bg-white text-xs font-semibold hover:border-[#1C1F1D] transition cursor-pointer shrink-0"
           >
             <RotateCcw className="w-3.5 h-3.5" /> Replay
           </button>
