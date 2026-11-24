@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { format } from "date-fns";
 import { CheckCircle2, Circle, BookOpen, ExternalLink } from "lucide-react";
+import ThemeToggle from "@/components/ThemeToggle";
 
 const HABITS = [
   {
@@ -102,26 +103,27 @@ export default function GuidePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F7F5F0] text-[#1C1F1D]">
-      <header className="border-b border-[#E3DDD2] bg-[#F7F5F0]/90 backdrop-blur-sm sticky top-0 z-20">
+    <div className="min-h-screen bg-[#F7F5F0] dark:bg-[#111412] text-[#1C1F1D] dark:text-[#ECEAE4] transition-colors">
+      <header className="border-b border-[#E3DDD2] dark:border-[#252B27] bg-[#F7F5F0]/90 dark:bg-[#111412]/90 backdrop-blur-sm sticky top-0 z-20">
         <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5">
-            <span className="w-2 h-2 rounded-full bg-[#2F5D50]" />
+            <span className="w-2 h-2 rounded-full bg-[#2F5D50] dark:bg-[#52A88E]" />
             <span className="font-serif text-xl font-semibold tracking-tight">
               Clarity
             </span>
           </Link>
 
-          <nav className="flex items-center gap-6 text-xs font-medium text-[#5A605C]">
-            <Link href="/" className="hover:text-[#1C1F1D] transition">
+          <nav className="flex items-center gap-4 sm:gap-6 text-xs font-medium text-[#5A605C] dark:text-[#A4AAA6]">
+            <Link href="/" className="hover:text-[#1C1F1D] dark:hover:text-[#ECEAE4] transition">
               Home
             </Link>
-            <Link href="/track" className="hover:text-[#1C1F1D] transition">
+            <Link href="/track" className="hover:text-[#1C1F1D] dark:hover:text-[#ECEAE4] transition">
               Tracker
             </Link>
+            <ThemeToggle />
             <Link
               href="/track"
-              className="px-4 py-1.5 rounded-full bg-[#1C1F1D] text-[#F7F5F0] hover:bg-[#2F5D50] transition"
+              className="px-4 py-1.5 rounded-full bg-[#1C1F1D] dark:bg-[#52A88E] text-[#F7F5F0] dark:text-[#0F1311] hover:bg-[#2F5D50] dark:hover:bg-[#66B89F] transition"
             >
               Open Log
             </Link>
@@ -130,14 +132,14 @@ export default function GuidePage() {
       </header>
 
       <main className="max-w-5xl mx-auto px-6 py-12 space-y-14">
-        <section className="space-y-3 border-b border-[#E3DDD2] pb-8">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#2F5D50]">
+        <section className="space-y-3 border-b border-[#E3DDD2] dark:border-[#252B27] pb-8">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#2F5D50] dark:text-[#66B89F]">
             Evidence-Aligned Action Toolkit
           </p>
           <h1 className="font-serif text-3xl sm:text-5xl font-normal leading-tight">
             Supporting metabolic &amp; cognitive clarity
           </h1>
-          <p className="text-sm text-[#5A605C] max-w-2xl leading-relaxed">
+          <p className="text-sm text-[#5A605C] dark:text-[#A4AAA6] max-w-2xl leading-relaxed">
             General daily habits and discussion topics for medical visits. This
             tool is educational only and does not replace individualized clinical
             advice.
@@ -149,7 +151,7 @@ export default function GuidePage() {
             <h2 className="font-serif text-2xl font-normal">
               Daily Focus-Support Habits
             </h2>
-            <span className="text-xs font-semibold text-[#2F5D50]">
+            <span className="text-xs font-semibold text-[#2F5D50] dark:text-[#66B89F]">
               {checked.length}/{HABITS.length} completed today
             </span>
           </div>
@@ -165,20 +167,20 @@ export default function GuidePage() {
                   onClick={() => toggleHabit(habit.id)}
                   className={`text-left p-5 rounded-2xl border transition cursor-pointer flex items-start gap-3.5 ${
                     done
-                      ? "bg-[#2F5D50]/10 border-[#2F5D50]"
-                      : "bg-white/85 border-[#E3DDD2] hover:border-[#1C1F1D]"
+                      ? "bg-[#2F5D50]/10 dark:bg-[#52A88E]/15 border-[#2F5D50] dark:border-[#52A88E]"
+                      : "bg-white/85 dark:bg-[#181D1A] border-[#E3DDD2] dark:border-[#252B27] hover:border-[#1C1F1D] dark:hover:border-[#ECEAE4]"
                   }`}
                 >
                   {done ? (
-                    <CheckCircle2 className="w-5 h-5 text-[#2F5D50] shrink-0 mt-0.5" />
+                    <CheckCircle2 className="w-5 h-5 text-[#2F5D50] dark:text-[#66B89F] shrink-0 mt-0.5" />
                   ) : (
                     <Circle className="w-5 h-5 text-[#9AA09C] shrink-0 mt-0.5" />
                   )}
                   <div className="space-y-1">
-                    <p className="font-serif text-lg font-medium text-[#1C1F1D]">
+                    <p className="font-serif text-lg font-medium">
                       {habit.title}
                     </p>
-                    <p className="text-xs text-[#5A605C] leading-relaxed">
+                    <p className="text-xs text-[#5A605C] dark:text-[#A4AAA6] leading-relaxed">
                       {habit.why}
                     </p>
                   </div>
@@ -197,15 +199,15 @@ export default function GuidePage() {
             {LAB_PANELS.map((panel) => (
               <div
                 key={panel.category}
-                className="bg-white/85 border border-[#E3DDD2] rounded-2xl p-6 space-y-2.5"
+                className="bg-white/85 dark:bg-[#181D1A] border border-[#E3DDD2] dark:border-[#252B27] rounded-2xl p-6 space-y-2.5"
               >
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-[#2F5D50]">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-[#2F5D50] dark:text-[#66B89F]">
                   {panel.category}
                 </p>
-                <p className="font-serif text-base font-medium text-[#1C1F1D]">
+                <p className="font-serif text-base font-medium">
                   {panel.tests}
                 </p>
-                <p className="text-xs text-[#5A605C] leading-relaxed">
+                <p className="text-xs text-[#5A605C] dark:text-[#A4AAA6] leading-relaxed">
                   {panel.note}
                 </p>
               </div>
@@ -213,8 +215,8 @@ export default function GuidePage() {
           </div>
         </section>
 
-        <section className="bg-white/85 border border-[#E3DDD2] rounded-2xl p-6 sm:p-8 space-y-4">
-          <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#2F5D50]">
+        <section className="bg-white/85 dark:bg-[#181D1A] border border-[#E3DDD2] dark:border-[#252B27] rounded-2xl p-6 sm:p-8 space-y-4">
+          <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#2F5D50] dark:text-[#66B89F]">
             <BookOpen className="w-3.5 h-3.5" /> Reference Sources
           </div>
           <div className="grid md:grid-cols-3 gap-4">
@@ -224,19 +226,19 @@ export default function GuidePage() {
                 href={src.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="p-4 rounded-xl bg-[#F7F5F0] border border-[#E3DDD2] hover:border-[#1C1F1D] transition space-y-1.5 block"
+                className="p-4 rounded-xl bg-[#F7F5F0] dark:bg-[#121614] border border-[#E3DDD2] dark:border-[#252B27] hover:border-[#1C1F1D] dark:hover:border-[#ECEAE4] transition space-y-1.5 block"
               >
-                <p className="font-serif text-sm font-medium text-[#1C1F1D] flex items-start justify-between gap-2">
+                <p className="font-serif text-sm font-medium flex items-start justify-between gap-2">
                   <span>{src.title}</span>
-                  <ExternalLink className="w-3.5 h-3.5 text-[#5A605C] shrink-0 mt-0.5" />
+                  <ExternalLink className="w-3.5 h-3.5 text-[#5A605C] dark:text-[#A4AAA6] shrink-0 mt-0.5" />
                 </p>
-                <p className="text-xs text-[#5A605C] leading-relaxed">
+                <p className="text-xs text-[#5A605C] dark:text-[#A4AAA6] leading-relaxed">
                   {src.detail}
                 </p>
               </a>
             ))}
           </div>
-          <p className="text-[11px] text-[#6E7570] pt-1">
+          <p className="text-[11px] text-[#6E7570] dark:text-[#8E9691] pt-1">
             Disclaimer: Educational information and personal logging only; not
             medical diagnosis or treatment advice.
           </p>

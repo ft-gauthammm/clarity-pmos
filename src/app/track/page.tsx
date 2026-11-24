@@ -33,6 +33,7 @@ import {
 import GamificationBar from "@/components/GamificationBar";
 import CognitiveMiniTest from "@/components/CognitiveMiniTest";
 import StroopGame from "@/components/StroopGame";
+import ThemeToggle from "@/components/ThemeToggle";
 
 type HormonePhase =
   | "Period / Bleeding (Days 1–5)"
@@ -1033,28 +1034,29 @@ export default function TrackPage() {
     lipids.ldl || lipids.hdl || lipids.triglycerides || lipids.hba1c;
 
   return (
-    <div className="min-h-screen bg-[#F7F5F0] text-[#1C1F1D]">
+    <div className="min-h-screen bg-[#F7F5F0] dark:bg-[#111412] text-[#1C1F1D] dark:text-[#ECEAE4] transition-colors">
       {/* Top Bar */}
-      <header className="print:hidden border-b border-[#E3DDD2] bg-[#F7F5F0]/90 backdrop-blur-sm sticky top-0 z-20">
+      <header className="print:hidden border-b border-[#E3DDD2] dark:border-[#252B27] bg-[#F7F5F0]/90 dark:bg-[#111412]/90 backdrop-blur-sm sticky top-0 z-20">
         <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5">
-            <span className="w-2 h-2 rounded-full bg-[#2F5D50]" />
+            <span className="w-2 h-2 rounded-full bg-[#2F5D50] dark:bg-[#52A88E]" />
             <span className="font-serif text-xl font-semibold tracking-tight">
               Clarity
             </span>
           </Link>
 
-          <nav className="flex items-center gap-5 text-xs font-medium text-[#5A605C]">
-            <Link href="/" className="hover:text-[#1C1F1D] transition">
+          <nav className="flex items-center gap-4 sm:gap-5 text-xs font-medium text-[#5A605C] dark:text-[#A4AAA6]">
+            <Link href="/" className="hover:text-[#1C1F1D] dark:hover:text-[#ECEAE4] transition">
               Home
             </Link>
-            <Link href="/guide" className="hover:text-[#1C1F1D] transition">
+            <Link href="/guide" className="hover:text-[#1C1F1D] dark:hover:text-[#ECEAE4] transition">
               Guide
             </Link>
+            <ThemeToggle />
             <button
               type="button"
               onClick={() => window.print()}
-              className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#1C1F1D] hover:bg-[#2F5D50] text-[#F7F5F0] font-semibold transition cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#1C1F1D] dark:bg-[#52A88E] hover:bg-[#2F5D50] dark:hover:bg-[#66B89F] text-[#F7F5F0] dark:text-[#0F1311] font-semibold transition cursor-pointer"
             >
               <Printer className="w-3.5 h-3.5" /> Doctor Brief
             </button>
@@ -1065,9 +1067,9 @@ export default function TrackPage() {
       {/* SCREEN VIEW */}
       <main className="print:hidden max-w-5xl mx-auto px-6 py-10 space-y-10">
         {/* Header + Utility Buttons */}
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-[#E3DDD2] pb-6">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-[#E3DDD2] dark:border-[#252B27] pb-6">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#2F5D50]">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#2F5D50] dark:text-[#66B89F]">
               Daily Check-In &amp; Pattern Log
             </p>
             <h1 className="font-serif text-3xl sm:text-4xl font-normal mt-1">
@@ -1079,16 +1081,16 @@ export default function TrackPage() {
             <button
               type="button"
               onClick={loadDemoData}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white border border-[#D5CEC2] hover:border-[#1C1F1D] text-xs font-semibold transition cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white dark:bg-[#181D1A] border border-[#D5CEC2] dark:border-[#2E3631] hover:border-[#1C1F1D] dark:hover:border-[#ECEAE4] text-xs font-semibold transition cursor-pointer"
             >
-              <Sparkles className="w-3.5 h-3.5 text-[#2F5D50]" /> Load 7-Day Demo
+              <Sparkles className="w-3.5 h-3.5 text-[#2F5D50] dark:text-[#66B89F]" /> Load 7-Day Demo
             </button>
             <button
               type="button"
               onClick={() => setBackupOpen((v) => !v)}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white border border-[#D5CEC2] hover:border-[#1C1F1D] text-xs font-semibold transition cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white dark:bg-[#181D1A] border border-[#D5CEC2] dark:border-[#2E3631] hover:border-[#1C1F1D] dark:hover:border-[#ECEAE4] text-xs font-semibold transition cursor-pointer"
             >
-              <Lock className="w-3.5 h-3.5 text-[#2F5D50]" /> Backup
+              <Lock className="w-3.5 h-3.5 text-[#2F5D50] dark:text-[#66B89F]" /> Backup
             </button>
             {entries.length > 0 && (
               <button
@@ -1104,12 +1106,12 @@ export default function TrackPage() {
 
         {/* Encrypted Backup Drawer */}
         {backupOpen && (
-          <div className="bg-white/95 border border-[#D5CEC2] rounded-2xl p-5 space-y-4">
+          <div className="bg-white/95 dark:bg-[#181D1A] border border-[#D5CEC2] dark:border-[#2E3631] rounded-2xl p-5 space-y-4">
             <div>
               <h2 className="font-serif text-lg font-medium flex items-center gap-2">
-                <Lock className="w-4 h-4 text-[#2F5D50]" /> AES-256 Encrypted Local Backup
+                <Lock className="w-4 h-4 text-[#2F5D50] dark:text-[#66B89F]" /> AES-256 Encrypted Local Backup
               </h2>
-              <p className="text-xs text-[#5A605C]">
+              <p className="text-xs text-[#5A605C] dark:text-[#A4AAA6]">
                 Stored locally in your browser. Use at least 8 characters to export or import a backup.
               </p>
             </div>
@@ -1120,20 +1122,20 @@ export default function TrackPage() {
                 value={backupPass}
                 onChange={(e) => setBackupPass(e.target.value)}
                 placeholder="Passphrase (min 8 characters)..."
-                className="flex-1 rounded-xl bg-[#F7F5F0] border border-[#D8D0C3] px-3.5 py-2 text-xs font-medium"
+                className="flex-1 rounded-xl bg-[#F7F5F0] dark:bg-[#121614] border border-[#D8D0C3] dark:border-[#2E3631] px-3.5 py-2 text-xs font-medium"
               />
               <button
                 type="button"
                 onClick={handleEncryptedExport}
                 disabled={entries.length === 0}
-                className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-full bg-[#1C1F1D] hover:bg-[#2F5D50] disabled:opacity-40 text-[#F7F5F0] text-xs font-semibold transition cursor-pointer"
+                className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-full bg-[#1C1F1D] dark:bg-[#52A88E] hover:bg-[#2F5D50] dark:hover:bg-[#66B89F] disabled:opacity-40 text-[#F7F5F0] dark:text-[#0F1311] text-xs font-semibold transition cursor-pointer"
               >
                 <Download className="w-3.5 h-3.5" /> Export .enc
               </button>
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-full bg-white border border-[#1C1F1D] text-xs font-semibold hover:bg-[#EFECE6] transition cursor-pointer"
+                className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-full bg-white dark:bg-[#121614] border border-[#1C1F1D] dark:border-[#ECEAE4] text-xs font-semibold hover:bg-[#EFECE6] dark:hover:bg-[#1E2521] transition cursor-pointer"
               >
                 <Upload className="w-3.5 h-3.5" /> Import
               </button>
@@ -1147,7 +1149,7 @@ export default function TrackPage() {
             </div>
 
             {backupStatus && (
-              <p className="text-xs font-semibold text-[#2F5D50]">
+              <p className="text-xs font-semibold text-[#2F5D50] dark:text-[#66B89F]">
                 {backupStatus}
               </p>
             )}
@@ -1167,9 +1169,9 @@ export default function TrackPage() {
         <div className="grid lg:grid-cols-12 gap-8 items-start">
           <form
             onSubmit={handleSaveEntry}
-            className="lg:col-span-7 bg-white/85 border border-[#E3DDD2] rounded-2xl p-6 sm:p-7 space-y-6"
+            className="lg:col-span-7 bg-white/85 dark:bg-[#181D1A] border border-[#E3DDD2] dark:border-[#252B27] rounded-2xl p-6 sm:p-7 space-y-6"
           >
-            <div className="flex items-center justify-between border-b border-[#EFECE6] pb-4">
+            <div className="flex items-center justify-between border-b border-[#EFECE6] dark:border-[#252B27] pb-4">
               <h2 className="font-serif text-xl font-medium">
                 Quick Check-In
               </h2>
@@ -1178,7 +1180,7 @@ export default function TrackPage() {
                 aria-label="Entry Date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="text-xs font-semibold bg-[#F7F5F0] border border-[#D8D0C3] rounded-lg px-3 py-1.5 text-[#1C1F1D]"
+                className="text-xs font-semibold bg-[#F7F5F0] dark:bg-[#121614] border border-[#D8D0C3] dark:border-[#2E3631] rounded-lg px-3 py-1.5 text-[#1C1F1D] dark:text-[#ECEAE4]"
               />
             </div>
 
@@ -1187,7 +1189,7 @@ export default function TrackPage() {
               <div>
                 <div className="flex justify-between text-xs font-semibold mb-1.5">
                   <label htmlFor="slider-fog">Brain Fog (1–10)</label>
-                  <span className="text-[#2F5D50]">
+                  <span className="text-[#2F5D50] dark:text-[#66B89F]">
                     {brainFog !== null ? `${brainFog}/10` : "Tap to rate"}
                   </span>
                 </div>
@@ -1208,7 +1210,7 @@ export default function TrackPage() {
               <div>
                 <div className="flex justify-between text-xs font-semibold mb-1.5">
                   <label htmlFor="slider-focus">Mental Focus (1–10)</label>
-                  <span className="text-[#2F5D50]">
+                  <span className="text-[#2F5D50] dark:text-[#66B89F]">
                     {focus !== null ? `${focus}/10` : "Tap to rate"}
                   </span>
                 </div>
@@ -1229,7 +1231,7 @@ export default function TrackPage() {
               <div>
                 <div className="flex justify-between text-xs font-semibold mb-1.5">
                   <label htmlFor="slider-energy">Physical Energy (1–10)</label>
-                  <span className="text-[#2F5D50]">
+                  <span className="text-[#2F5D50] dark:text-[#66B89F]">
                     {energy !== null ? `${energy}/10` : "Tap to rate"}
                   </span>
                 </div>
@@ -1250,7 +1252,7 @@ export default function TrackPage() {
               <div>
                 <div className="flex justify-between text-xs font-semibold mb-1.5">
                   <label htmlFor="slider-mood">Mood Stability (1–10)</label>
-                  <span className="text-[#2F5D50]">
+                  <span className="text-[#2F5D50] dark:text-[#66B89F]">
                     {mood !== null ? `${mood}/10` : "Tap to rate"}
                   </span>
                 </div>
@@ -1284,7 +1286,7 @@ export default function TrackPage() {
                   value={sleepHours}
                   onChange={(e) => setSleepHours(e.target.value)}
                   placeholder="e.g. 7.5"
-                  className="w-full rounded-xl bg-[#F7F5F0] border border-[#D8D0C3] px-3.5 py-2 text-sm font-medium"
+                  className="w-full rounded-xl bg-[#F7F5F0] dark:bg-[#121614] border border-[#D8D0C3] dark:border-[#2E3631] px-3.5 py-2 text-sm font-medium"
                 />
               </div>
               <div>
@@ -1297,7 +1299,7 @@ export default function TrackPage() {
                   value={cycleDay}
                   onChange={(e) => handleCycleDayChange(e.target.value)}
                   placeholder="Optional (e.g. 12)"
-                  className="w-full rounded-xl bg-[#F7F5F0] border border-[#D8D0C3] px-3.5 py-2 text-sm font-medium"
+                  className="w-full rounded-xl bg-[#F7F5F0] dark:bg-[#121614] border border-[#D8D0C3] dark:border-[#2E3631] px-3.5 py-2 text-sm font-medium"
                 />
               </div>
             </div>
@@ -1307,7 +1309,7 @@ export default function TrackPage() {
               <div className="flex items-center justify-between">
                 <label className="block text-xs font-semibold">
                   Cycle or Perimenopause Cue{" "}
-                  <span className="font-normal text-[#6E7570]">
+                  <span className="font-normal text-[#6E7570] dark:text-[#8E9691]">
                     (optional — pick what&apos;s obvious or &ldquo;Not Sure&rdquo;)
                   </span>
                 </label>
@@ -1315,7 +1317,7 @@ export default function TrackPage() {
                   <button
                     type="button"
                     onClick={() => setHormonePhase(null)}
-                    className="text-[11px] text-[#6E7570] hover:text-[#1C1F1D] cursor-pointer"
+                    className="text-[11px] text-[#6E7570] dark:text-[#8E9691] hover:text-[#1C1F1D] dark:hover:text-[#ECEAE4] cursor-pointer"
                   >
                     Clear
                   </button>
@@ -1332,8 +1334,8 @@ export default function TrackPage() {
                       onClick={() => setHormonePhase(active ? null : p.label)}
                       className={`p-2 rounded-xl border text-left transition cursor-pointer flex flex-col justify-between gap-0.5 ${
                         active
-                          ? "bg-[#1C1F1D] text-[#F7F5F0] border-[#1C1F1D]"
-                          : "bg-[#F7F5F0] text-[#4F5551] border-[#D8D0C3] hover:border-[#1C1F1D]"
+                          ? "bg-[#1C1F1D] dark:bg-[#ECEAE4] text-[#F7F5F0] dark:text-[#111412] border-[#1C1F1D] dark:border-[#ECEAE4]"
+                          : "bg-[#F7F5F0] dark:bg-[#121614] text-[#4F5551] dark:text-[#A4AAA6] border-[#D8D0C3] dark:border-[#2B322E] hover:border-[#1C1F1D] dark:hover:border-[#ECEAE4]"
                       }`}
                     >
                       <div className="flex items-center gap-1.5">
@@ -1347,7 +1349,9 @@ export default function TrackPage() {
                       </div>
                       <span
                         className={`text-[10px] leading-snug ${
-                          active ? "text-[#D5CEC2]" : "text-[#6E7570]"
+                          active
+                            ? "text-[#D5CEC2] dark:text-[#4F5551]"
+                            : "text-[#6E7570] dark:text-[#8E9691]"
                         }`}
                       >
                         {p.hint}
@@ -1359,12 +1363,12 @@ export default function TrackPage() {
             </div>
 
             {/* Individual Symptom Tracking with 1–5 Severity */}
-            <div className="space-y-3 border-t border-[#EFECE6] pt-4">
+            <div className="space-y-3 border-t border-[#EFECE6] dark:border-[#252B27] pt-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <label className="block text-xs font-semibold">
                   Symptoms (optional — tap to log &amp; rate 1–5)
                 </label>
-                <span className="text-[11px] text-[#6E7570]">
+                <span className="text-[11px] text-[#6E7570] dark:text-[#8E9691]">
                   {Object.keys(symptomScores).length} selected
                 </span>
               </div>
@@ -1375,8 +1379,8 @@ export default function TrackPage() {
                   onClick={() => setActiveCategory("ALL")}
                   className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition cursor-pointer ${
                     activeCategory === "ALL"
-                      ? "bg-[#1C1F1D] text-[#F7F5F0]"
-                      : "bg-[#EFECE6] text-[#5A605C] hover:text-[#1C1F1D]"
+                      ? "bg-[#1C1F1D] dark:bg-[#ECEAE4] text-[#F7F5F0] dark:text-[#111412]"
+                      : "bg-[#EFECE6] dark:bg-[#222824] text-[#5A605C] dark:text-[#A4AAA6] hover:text-[#1C1F1D] dark:hover:text-[#ECEAE4]"
                   }`}
                 >
                   All
@@ -1388,8 +1392,8 @@ export default function TrackPage() {
                     onClick={() => setActiveCategory(cat.category)}
                     className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition cursor-pointer ${
                       activeCategory === cat.category
-                        ? "bg-[#1C1F1D] text-[#F7F5F0]"
-                        : "bg-[#EFECE6] text-[#5A605C] hover:text-[#1C1F1D]"
+                        ? "bg-[#1C1F1D] dark:bg-[#ECEAE4] text-[#F7F5F0] dark:text-[#111412]"
+                        : "bg-[#EFECE6] dark:bg-[#222824] text-[#5A605C] dark:text-[#A4AAA6] hover:text-[#1C1F1D] dark:hover:text-[#ECEAE4]"
                     }`}
                   >
                     {cat.category}
@@ -1408,8 +1412,8 @@ export default function TrackPage() {
                       onClick={() => toggleSymptom(sym)}
                       className={`px-3 py-1.5 rounded-full text-xs font-medium border transition cursor-pointer ${
                         active
-                          ? "bg-[#2F5D50] text-[#F7F5F0] border-[#2F5D50]"
-                          : "bg-[#F7F5F0] text-[#4F5551] border-[#D8D0C3] hover:border-[#1C1F1D]"
+                          ? "bg-[#2F5D50] dark:bg-[#52A88E] text-[#F7F5F0] dark:text-[#0F1311] border-[#2F5D50] dark:border-[#52A88E]"
+                          : "bg-[#F7F5F0] dark:bg-[#121614] text-[#4F5551] dark:text-[#A4AAA6] border-[#D8D0C3] dark:border-[#2B322E] hover:border-[#1C1F1D] dark:hover:border-[#ECEAE4]"
                       }`}
                     >
                       {sym}
@@ -1424,9 +1428,9 @@ export default function TrackPage() {
                   {Object.entries(symptomScores).map(([sym, sev]) => (
                     <div
                       key={sym}
-                      className="flex flex-wrap items-center justify-between gap-2 px-3.5 py-2 rounded-xl bg-[#F7F5F0] border border-[#E3DDD2]"
+                      className="flex flex-wrap items-center justify-between gap-2 px-3.5 py-2 rounded-xl bg-[#F7F5F0] dark:bg-[#121614] border border-[#E3DDD2] dark:border-[#252B27]"
                     >
-                      <span className="text-xs font-semibold text-[#1C1F1D]">
+                      <span className="text-xs font-semibold">
                         {sym}
                       </span>
                       <div className="flex items-center gap-1.5">
@@ -1437,8 +1441,8 @@ export default function TrackPage() {
                             onClick={() => setSymptomSeverity(sym, lvl)}
                             className={`w-6 h-6 rounded-full text-xs font-semibold transition cursor-pointer ${
                               sev === lvl
-                                ? "bg-[#1C1F1D] text-[#F7F5F0]"
-                                : "bg-white border border-[#D8D0C3] text-[#5A605C] hover:border-[#1C1F1D]"
+                                ? "bg-[#1C1F1D] dark:bg-[#ECEAE4] text-[#F7F5F0] dark:text-[#111412]"
+                                : "bg-white dark:bg-[#181D1A] border border-[#D8D0C3] dark:border-[#2E3631] text-[#5A605C] dark:text-[#A4AAA6] hover:border-[#1C1F1D] dark:hover:border-[#ECEAE4]"
                             }`}
                           >
                             {lvl}
@@ -1470,12 +1474,12 @@ export default function TrackPage() {
                     }
                   }}
                   placeholder="Add custom symptom..."
-                  className="flex-1 rounded-xl bg-[#F7F5F0] border border-[#D8D0C3] px-3 py-1.5 text-xs"
+                  className="flex-1 rounded-xl bg-[#F7F5F0] dark:bg-[#121614] border border-[#D8D0C3] dark:border-[#2E3631] px-3 py-1.5 text-xs"
                 />
                 <button
                   type="button"
                   onClick={handleAddCustomSymptom}
-                  className="px-3 py-1.5 rounded-xl bg-white border border-[#D8D0C3] hover:border-[#1C1F1D] text-xs font-semibold transition cursor-pointer"
+                  className="px-3 py-1.5 rounded-xl bg-white dark:bg-[#121614] border border-[#D8D0C3] dark:border-[#2E3631] hover:border-[#1C1F1D] dark:hover:border-[#ECEAE4] text-xs font-semibold transition cursor-pointer"
                 >
                   + Add
                 </button>
@@ -1498,8 +1502,8 @@ export default function TrackPage() {
                       onClick={() => toggleTrigger(trig)}
                       className={`px-3 py-1.5 rounded-full text-xs font-medium border transition cursor-pointer ${
                         active
-                          ? "bg-[#1C1F1D] text-[#F7F5F0] border-[#1C1F1D]"
-                          : "bg-white text-[#4F5551] border-[#D8D0C3] hover:border-[#1C1F1D]"
+                          ? "bg-[#1C1F1D] dark:bg-[#ECEAE4] text-[#F7F5F0] dark:text-[#111412] border-[#1C1F1D] dark:border-[#ECEAE4]"
+                          : "bg-white dark:bg-[#121614] text-[#4F5551] dark:text-[#A4AAA6] border-[#D8D0C3] dark:border-[#2B322E] hover:border-[#1C1F1D] dark:hover:border-[#ECEAE4]"
                       }`}
                     >
                       {trig}
@@ -1520,16 +1524,16 @@ export default function TrackPage() {
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Any context for yourself or your doctor..."
-                className="w-full rounded-xl bg-[#F7F5F0] border border-[#D8D0C3] px-3.5 py-2 text-sm"
+                className="w-full rounded-xl bg-[#F7F5F0] dark:bg-[#121614] border border-[#D8D0C3] dark:border-[#2E3631] px-3.5 py-2 text-sm"
               />
             </div>
 
-            {/* Collapsible Vitals & Lipid Labs (Tucked Away to Keep Daily Form Light) */}
-            <div className="border-t border-[#EFECE6] pt-4 space-y-3">
+            {/* Collapsible Vitals & Lipid Labs */}
+            <div className="border-t border-[#EFECE6] dark:border-[#252B27] pt-4 space-y-3">
               <button
                 type="button"
                 onClick={() => setShowVitalsAndLabs((v) => !v)}
-                className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#2F5D50] hover:underline cursor-pointer"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#2F5D50] dark:text-[#66B89F] hover:underline cursor-pointer"
               >
                 <HeartPulse className="w-3.5 h-3.5" />
                 {showVitalsAndLabs
@@ -1538,7 +1542,7 @@ export default function TrackPage() {
               </button>
 
               {showVitalsAndLabs && (
-                <div className="p-4 rounded-xl bg-[#F7F5F0] border border-[#E3DDD2] space-y-4">
+                <div className="p-4 rounded-xl bg-[#F7F5F0] dark:bg-[#121614] border border-[#E3DDD2] dark:border-[#252B27] space-y-4">
                   <div className="grid grid-cols-3 gap-3">
                     <div>
                       <label htmlFor="input-bp-sys" className="block text-[11px] font-semibold mb-1">
@@ -1550,7 +1554,7 @@ export default function TrackPage() {
                         placeholder="120"
                         value={bpSystolic}
                         onChange={(e) => setBpSystolic(e.target.value)}
-                        className="w-full rounded-lg bg-white border border-[#D8D0C3] px-2.5 py-1.5 text-xs"
+                        className="w-full rounded-lg bg-white dark:bg-[#181D1A] border border-[#D8D0C3] dark:border-[#2E3631] px-2.5 py-1.5 text-xs"
                       />
                     </div>
                     <div>
@@ -1563,7 +1567,7 @@ export default function TrackPage() {
                         placeholder="80"
                         value={bpDiastolic}
                         onChange={(e) => setBpDiastolic(e.target.value)}
-                        className="w-full rounded-lg bg-white border border-[#D8D0C3] px-2.5 py-1.5 text-xs"
+                        className="w-full rounded-lg bg-white dark:bg-[#181D1A] border border-[#D8D0C3] dark:border-[#2E3631] px-2.5 py-1.5 text-xs"
                       />
                     </div>
                     <div>
@@ -1576,13 +1580,13 @@ export default function TrackPage() {
                         placeholder="72 bpm"
                         value={restingHr}
                         onChange={(e) => setRestingHr(e.target.value)}
-                        className="w-full rounded-lg bg-white border border-[#D8D0C3] px-2.5 py-1.5 text-xs"
+                        className="w-full rounded-lg bg-white dark:bg-[#181D1A] border border-[#D8D0C3] dark:border-[#2E3631] px-2.5 py-1.5 text-xs"
                       />
                     </div>
                   </div>
 
-                  <div className="border-t border-[#E3DDD2] pt-3 space-y-2.5">
-                    <p className="text-[11px] font-semibold text-[#1C1F1D]">
+                  <div className="border-t border-[#E3DDD2] dark:border-[#252B27] pt-3 space-y-2.5">
+                    <p className="text-[11px] font-semibold">
                       Recent Lipid &amp; Glycemic Snapshot
                     </p>
                     <div className="grid grid-cols-2 gap-2.5">
@@ -1593,7 +1597,7 @@ export default function TrackPage() {
                         onChange={(e) =>
                           setLipids((p) => ({ ...p, ldl: e.target.value }))
                         }
-                        className="rounded-lg bg-white border border-[#D8D0C3] px-2.5 py-1.5 text-xs"
+                        className="rounded-lg bg-white dark:bg-[#181D1A] border border-[#D8D0C3] dark:border-[#2E3631] px-2.5 py-1.5 text-xs"
                       />
                       <input
                         type="text"
@@ -1602,7 +1606,7 @@ export default function TrackPage() {
                         onChange={(e) =>
                           setLipids((p) => ({ ...p, hdl: e.target.value }))
                         }
-                        className="rounded-lg bg-white border border-[#D8D0C3] px-2.5 py-1.5 text-xs"
+                        className="rounded-lg bg-white dark:bg-[#181D1A] border border-[#D8D0C3] dark:border-[#2E3631] px-2.5 py-1.5 text-xs"
                       />
                       <input
                         type="text"
@@ -1614,7 +1618,7 @@ export default function TrackPage() {
                             triglycerides: e.target.value,
                           }))
                         }
-                        className="rounded-lg bg-white border border-[#D8D0C3] px-2.5 py-1.5 text-xs"
+                        className="rounded-lg bg-white dark:bg-[#181D1A] border border-[#D8D0C3] dark:border-[#2E3631] px-2.5 py-1.5 text-xs"
                       />
                       <input
                         type="text"
@@ -1623,19 +1627,19 @@ export default function TrackPage() {
                         onChange={(e) =>
                           setLipids((p) => ({ ...p, hba1c: e.target.value }))
                         }
-                        className="rounded-lg bg-white border border-[#D8D0C3] px-2.5 py-1.5 text-xs"
+                        className="rounded-lg bg-white dark:bg-[#181D1A] border border-[#D8D0C3] dark:border-[#2E3631] px-2.5 py-1.5 text-xs"
                       />
                     </div>
                     <div className="flex items-center justify-between">
                       <button
                         type="button"
                         onClick={handleSaveLipids}
-                        className="px-3.5 py-1 rounded-full bg-[#1C1F1D] text-[#F7F5F0] text-[11px] font-semibold cursor-pointer"
+                        className="px-3.5 py-1 rounded-full bg-[#1C1F1D] dark:bg-[#52A88E] text-[#F7F5F0] dark:text-[#0F1311] text-[11px] font-semibold cursor-pointer"
                       >
                         Save Labs
                       </button>
                       {lipidsSavedMsg && (
-                        <span className="text-[11px] font-semibold text-[#2F5D50]">
+                        <span className="text-[11px] font-semibold text-[#2F5D50] dark:text-[#66B89F]">
                           Saved for Doctor Brief
                         </span>
                       )}
@@ -1656,15 +1660,15 @@ export default function TrackPage() {
                 type="submit"
                 className={`inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-xs font-semibold tracking-wide transition cursor-pointer ${
                   slidersComplete && sleepHours !== ""
-                    ? "bg-[#1C1F1D] hover:bg-[#2F5D50] text-[#F7F5F0]"
-                    : "bg-[#D5CEC2] text-[#5A605C]"
+                    ? "bg-[#1C1F1D] hover:bg-[#2F5D50] dark:bg-[#52A88E] dark:hover:bg-[#66B89F] text-[#F7F5F0] dark:text-[#0F1311]"
+                    : "bg-[#D5CEC2] dark:bg-[#252B27] text-[#5A605C] dark:text-[#8E9691]"
                 }`}
               >
                 <Plus className="w-4 h-4" /> Save Entry (+30 XP)
               </button>
 
               {savedBanner && (
-                <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#2F5D50]">
+                <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#2F5D50] dark:text-[#66B89F]">
                   <CheckCircle2 className="w-4 h-4" /> Saved locally
                 </span>
               )}
@@ -1689,10 +1693,10 @@ export default function TrackPage() {
 
         {/* Analytics, Individual Symptom Lens & Chart */}
         {analytics && (
-          <section className="bg-white/85 border border-[#E3DDD2] rounded-2xl p-6 sm:p-8 space-y-6">
-            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#EFECE6] pb-4">
+          <section className="bg-white/85 dark:bg-[#181D1A] border border-[#E3DDD2] dark:border-[#252B27] rounded-2xl p-6 sm:p-8 space-y-6">
+            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#EFECE6] dark:border-[#252B27] pb-4">
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-[#2F5D50]">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-[#2F5D50] dark:text-[#66B89F]">
                   On-Device Pattern Engine
                 </p>
                 <h2 className="font-serif text-2xl font-normal">
@@ -1706,7 +1710,7 @@ export default function TrackPage() {
                     aria-label="Analyze Individual Symptom"
                     value={selectedSymptomFilter}
                     onChange={(e) => setSelectedSymptomFilter(e.target.value)}
-                    className="px-3 py-1.5 rounded-full text-xs font-semibold bg-[#F7F5F0] border border-[#D8D0C3] text-[#1C1F1D] cursor-pointer"
+                    className="px-3 py-1.5 rounded-full text-xs font-semibold bg-[#F7F5F0] dark:bg-[#121614] border border-[#D8D0C3] dark:border-[#2E3631] text-[#1C1F1D] dark:text-[#ECEAE4] cursor-pointer"
                   >
                     <option value="ALL">Symptom Lens: Overview</option>
                     {symptomBreakdown.map((s) => (
@@ -1722,8 +1726,8 @@ export default function TrackPage() {
                   onClick={() => setShowPhaseOverlay((v) => !v)}
                   className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition cursor-pointer ${
                     showPhaseOverlay
-                      ? "bg-[#2F5D50] text-[#F7F5F0] border-[#2F5D50]"
-                      : "bg-[#F7F5F0] text-[#5A605C] border-[#D8D0C3]"
+                      ? "bg-[#2F5D50] dark:bg-[#52A88E] text-[#F7F5F0] dark:text-[#0F1311] border-[#2F5D50] dark:border-[#52A88E]"
+                      : "bg-[#F7F5F0] dark:bg-[#121614] text-[#5A605C] dark:text-[#A4AAA6] border-[#D8D0C3] dark:border-[#2B322E]"
                   }`}
                 >
                   <Layers className="w-3.5 h-3.5" /> Cue Overlay
@@ -1733,8 +1737,8 @@ export default function TrackPage() {
                   onClick={() => setShowReactionOverlay((v) => !v)}
                   className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition cursor-pointer ${
                     showReactionOverlay
-                      ? "bg-[#1C1F1D] text-[#F7F5F0] border-[#1C1F1D]"
-                      : "bg-[#F7F5F0] text-[#5A605C] border-[#D8D0C3]"
+                      ? "bg-[#1C1F1D] dark:bg-[#ECEAE4] text-[#F7F5F0] dark:text-[#111412] border-[#1C1F1D] dark:border-[#ECEAE4]"
+                      : "bg-[#F7F5F0] dark:bg-[#121614] text-[#5A605C] dark:text-[#A4AAA6] border-[#D8D0C3] dark:border-[#2B322E]"
                   }`}
                 >
                   <Activity className="w-3.5 h-3.5" /> Reaction Trend
@@ -1743,37 +1747,37 @@ export default function TrackPage() {
             </div>
 
             {selectedSymptomDetail && (
-              <div className="p-4 rounded-xl bg-[#2F5D50]/10 border border-[#2F5D50]/30 grid sm:grid-cols-4 gap-4">
+              <div className="p-4 rounded-xl bg-[#2F5D50]/10 dark:bg-[#52A88E]/15 border border-[#2F5D50]/30 dark:border-[#52A88E]/30 grid sm:grid-cols-4 gap-4">
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-[#2F5D50]">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-[#2F5D50] dark:text-[#66B89F]">
                     Isolated Symptom
                   </p>
-                  <p className="font-serif text-lg font-medium text-[#1C1F1D]">
+                  <p className="font-serif text-lg font-medium">
                     {selectedSymptomDetail.name}
                   </p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-[#5A605C]">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-[#5A605C] dark:text-[#A4AAA6]">
                     Frequency &amp; Avg Severity
                   </p>
-                  <p className="font-serif text-base font-medium text-[#1C1F1D]">
+                  <p className="font-serif text-base font-medium">
                     {selectedSymptomDetail.daysLogged}/{entries.length} days ·{" "}
                     {selectedSymptomDetail.avgSeverity}/5
                   </p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-[#5A605C]">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-[#5A605C] dark:text-[#A4AAA6]">
                     Highest Severity Stage
                   </p>
-                  <p className="font-serif text-sm font-medium text-[#1C1F1D]">
+                  <p className="font-serif text-sm font-medium">
                     {selectedSymptomDetail.peakPhase}
                   </p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-[#5A605C]">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-[#5A605C] dark:text-[#A4AAA6]">
                     Top Co-Occurring Trigger
                   </p>
-                  <p className="font-serif text-sm font-medium text-[#1C1F1D]">
+                  <p className="font-serif text-sm font-medium">
                     {selectedSymptomDetail.topTrigger}
                   </p>
                 </div>
@@ -1785,23 +1789,23 @@ export default function TrackPage() {
                 {analytics.nudges.map((nudge, idx) => (
                   <div
                     key={idx}
-                    className="p-4 rounded-xl bg-[#F7F5F0] border border-[#E3DDD2] flex items-start gap-2.5"
+                    className="p-4 rounded-xl bg-[#F7F5F0] dark:bg-[#121614] border border-[#E3DDD2] dark:border-[#252B27] flex items-start gap-2.5"
                   >
-                    <Sparkles className="w-4 h-4 text-[#2F5D50] shrink-0 mt-0.5" />
-                    <p className="font-serif text-sm text-[#1C1F1D] leading-snug">
+                    <Sparkles className="w-4 h-4 text-[#2F5D50] dark:text-[#66B89F] shrink-0 mt-0.5" />
+                    <p className="font-serif text-sm leading-snug">
                       {nudge}
                     </p>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-[#5A605C] bg-[#F7F5F0] border border-[#E3DDD2] rounded-xl px-4 py-3">
+              <p className="text-xs text-[#5A605C] dark:text-[#A4AAA6] bg-[#F7F5F0] dark:bg-[#121614] border border-[#E3DDD2] dark:border-[#252B27] rounded-xl px-4 py-3">
                 Pattern comparisons appear once at least 3 days exist in both comparison buckets (for example, 3 nights &lt;6.5h sleep and 3 nights &ge;6.5h sleep).
               </p>
             )}
 
             {showPhaseOverlay && (
-              <div className="flex flex-wrap items-center gap-4 text-[11px] font-semibold text-[#5A605C]">
+              <div className="flex flex-wrap items-center gap-4 text-[11px] font-semibold text-[#5A605C] dark:text-[#A4AAA6]">
                 <span>Cycle / Perimenopause Bands:</span>
                 {HORMONE_PHASES.map((p) => (
                   <span key={p.label} className="inline-flex items-center gap-1.5">
@@ -1922,8 +1926,8 @@ export default function TrackPage() {
 
             {/* Individual Symptom Breakdown Cards */}
             {symptomBreakdown.length > 0 && (
-              <div className="border-t border-[#EFECE6] pt-5 space-y-3">
-                <p className="text-xs font-semibold uppercase tracking-wider text-[#5A605C]">
+              <div className="border-t border-[#EFECE6] dark:border-[#252B27] pt-5 space-y-3">
+                <p className="text-xs font-semibold uppercase tracking-wider text-[#5A605C] dark:text-[#A4AAA6]">
                   Individual Symptom Breakdown (tap to isolate on chart)
                 </p>
                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -1938,8 +1942,8 @@ export default function TrackPage() {
                         }
                         className={`text-left p-3.5 rounded-xl border transition cursor-pointer space-y-1 ${
                           isSelected
-                            ? "bg-[#1C1F1D] text-[#F7F5F0] border-[#1C1F1D]"
-                            : "bg-[#F7F5F0] text-[#1C1F1D] border-[#E3DDD2] hover:border-[#1C1F1D]"
+                            ? "bg-[#1C1F1D] dark:bg-[#ECEAE4] text-[#F7F5F0] dark:text-[#111412] border-[#1C1F1D] dark:border-[#ECEAE4]"
+                            : "bg-[#F7F5F0] dark:bg-[#121614] border-[#E3DDD2] dark:border-[#252B27] hover:border-[#1C1F1D] dark:hover:border-[#ECEAE4]"
                         }`}
                       >
                         <div className="flex items-center justify-between">
@@ -1948,7 +1952,9 @@ export default function TrackPage() {
                           </span>
                           <span
                             className={`text-xs font-semibold ${
-                              isSelected ? "text-[#A7D7C5]" : "text-[#2F5D50]"
+                              isSelected
+                                ? "text-[#A7D7C5] dark:text-[#2F5D50]"
+                                : "text-[#2F5D50] dark:text-[#66B89F]"
                             }`}
                           >
                             Avg {item.avgSeverity}/5
@@ -1956,7 +1962,9 @@ export default function TrackPage() {
                         </div>
                         <p
                           className={`text-[11px] ${
-                            isSelected ? "text-[#D5CEC2]" : "text-[#5A605C]"
+                            isSelected
+                              ? "text-[#D5CEC2] dark:text-[#4F5551]"
+                              : "text-[#5A605C] dark:text-[#A4AAA6]"
                           }`}
                         >
                           {item.daysLogged}d · Peak: {item.peakPhase}
@@ -1969,11 +1977,11 @@ export default function TrackPage() {
             )}
 
             {/* Collapsible Logged Days List (Edit or Delete a Single Day) */}
-            <div className="border-t border-[#EFECE6] pt-4 space-y-3">
+            <div className="border-t border-[#EFECE6] dark:border-[#252B27] pt-4 space-y-3">
               <button
                 type="button"
                 onClick={() => setShowAllLogs((v) => !v)}
-                className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#5A605C] hover:text-[#1C1F1D] cursor-pointer"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#5A605C] dark:text-[#A4AAA6] hover:text-[#1C1F1D] dark:hover:text-[#ECEAE4] cursor-pointer"
               >
                 <Calendar className="w-3.5 h-3.5" />
                 {showAllLogs
@@ -1982,7 +1990,7 @@ export default function TrackPage() {
               </button>
 
               {showAllLogs && (
-                <div className="divide-y divide-[#EFECE6] rounded-xl border border-[#E3DDD2] bg-[#F7F5F0]/70">
+                <div className="divide-y divide-[#EFECE6] dark:divide-[#252B27] rounded-xl border border-[#E3DDD2] dark:border-[#252B27] bg-[#F7F5F0]/70 dark:bg-[#121614]/70">
                   {[...entries].reverse().map((item) => (
                     <div
                       key={item.id}
@@ -1990,7 +1998,7 @@ export default function TrackPage() {
                     >
                       <div className="flex items-center gap-3">
                         <span className="font-semibold">{item.date}</span>
-                        <span className="text-[#5A605C]">
+                        <span className="text-[#5A605C] dark:text-[#A4AAA6]">
                           Fog {item.brainFog}/10 · Focus {item.focus}/10 · Sleep{" "}
                           {item.sleepHours}h
                         </span>
@@ -1999,7 +2007,7 @@ export default function TrackPage() {
                         <button
                           type="button"
                           onClick={() => handleLoadEntryIntoForm(item)}
-                          className="px-2.5 py-1 rounded-lg bg-white border border-[#D8D0C3] hover:border-[#1C1F1D] font-medium cursor-pointer"
+                          className="px-2.5 py-1 rounded-lg bg-white dark:bg-[#181D1A] border border-[#D8D0C3] dark:border-[#2E3631] hover:border-[#1C1F1D] dark:hover:border-[#ECEAE4] font-medium cursor-pointer"
                         >
                           Edit
                         </button>

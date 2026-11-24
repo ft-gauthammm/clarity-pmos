@@ -20,6 +20,7 @@ import {
   RotateCcw,
   CheckCircle2,
 } from "lucide-react";
+import ThemeToggle from "@/components/ThemeToggle";
 
 const MYTH_CARDS = [
   {
@@ -87,14 +88,25 @@ export default function HomePage() {
   };
 
   const simData = useMemo(() => {
-    const baseFog = 3 + (shortSleepSim ? 3 : 0) + (lateCarbSim ? 2 : 0) + (perimenoSim ? 1 : 0);
+    const baseFog =
+      3 +
+      (shortSleepSim ? 3 : 0) +
+      (lateCarbSim ? 2 : 0) +
+      (perimenoSim ? 1 : 0);
     const baseFocus = Math.max(
       2,
-      8 - (shortSleepSim ? 3 : 0) - (lateCarbSim ? 1 : 0) - (perimenoSim ? 1 : 0)
+      8 -
+        (shortSleepSim ? 3 : 0) -
+        (lateCarbSim ? 1 : 0) -
+        (perimenoSim ? 1 : 0)
     );
 
     return [
-      { slot: "8am", focus: Math.min(10, baseFocus + 1), fog: Math.max(1, baseFog - 1) },
+      {
+        slot: "8am",
+        focus: Math.min(10, baseFocus + 1),
+        fog: Math.max(1, baseFog - 1),
+      },
       { slot: "11am", focus: baseFocus, fog: baseFog },
       {
         slot: "2pm",
@@ -114,30 +126,40 @@ export default function HomePage() {
     TIME_WINDOWS.find((w) => w.key === activeWindow) || TIME_WINDOWS[1];
 
   return (
-    <div className="min-h-screen bg-[#F7F5F0] text-[#1C1F1D]">
+    <div className="min-h-screen bg-[#F7F5F0] dark:bg-[#111412] text-[#1C1F1D] dark:text-[#ECEAE4] transition-colors">
       {/* Top Nav */}
-      <header className="border-b border-[#E3DDD2] bg-[#F7F5F0]/90 backdrop-blur-sm sticky top-0 z-20">
+      <header className="border-b border-[#E3DDD2] dark:border-[#252B27] bg-[#F7F5F0]/90 dark:bg-[#111412]/90 backdrop-blur-sm sticky top-0 z-20">
         <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#2F5D50]" />
+            <span className="w-2.5 h-2.5 rounded-full bg-[#2F5D50] dark:bg-[#52A88E]" />
             <span className="font-serif text-xl font-semibold tracking-tight">
               Clarity
             </span>
           </Link>
 
-          <nav className="flex items-center gap-6 text-xs font-medium text-[#5A605C]">
-            <a href="#learn-pmos" className="hover:text-[#1C1F1D] transition">
+          <nav className="flex items-center gap-4 sm:gap-6 text-xs font-medium text-[#5A605C] dark:text-[#A4AAA6]">
+            <a
+              href="#learn-pmos"
+              className="hidden sm:inline hover:text-[#1C1F1D] dark:hover:text-[#ECEAE4] transition"
+            >
               About PMOS
             </a>
-            <a href="#playground" className="hover:text-[#1C1F1D] transition">
+            <a
+              href="#playground"
+              className="hidden sm:inline hover:text-[#1C1F1D] dark:hover:text-[#ECEAE4] transition"
+            >
               Try Sandbox
             </a>
-            <Link href="/guide" className="hover:text-[#1C1F1D] transition">
+            <Link
+              href="/guide"
+              className="hover:text-[#1C1F1D] dark:hover:text-[#ECEAE4] transition"
+            >
               Toolkit &amp; Labs
             </Link>
+            <ThemeToggle />
             <Link
               href="/track"
-              className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#1C1F1D] hover:bg-[#2F5D50] text-[#F7F5F0] font-semibold transition"
+              className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#1C1F1D] hover:bg-[#2F5D50] dark:bg-[#52A88E] dark:hover:bg-[#66B89F] text-[#F7F5F0] dark:text-[#0F1311] font-semibold transition"
             >
               Open Tracker <ArrowRight className="w-3.5 h-3.5" />
             </Link>
@@ -147,8 +169,8 @@ export default function HomePage() {
 
       <main className="max-w-5xl mx-auto px-6 py-12 space-y-16">
         {/* Hero */}
-        <section className="space-y-6 border-b border-[#E3DDD2] pb-12">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white/90 border border-[#E3DDD2] text-[11px] font-semibold uppercase tracking-[0.16em] text-[#2F5D50]">
+        <section className="space-y-6 border-b border-[#E3DDD2] dark:border-[#252B27] pb-12">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white/90 dark:bg-[#181D1A] border border-[#E3DDD2] dark:border-[#252B27] text-[11px] font-semibold uppercase tracking-[0.16em] text-[#2F5D50] dark:text-[#66B89F]">
             <Sparkles className="w-3.5 h-3.5" /> PMOS Awareness &amp; Interactive Pattern Companion
           </div>
 
@@ -156,20 +178,24 @@ export default function HomePage() {
             Understand your fog, energy, and hormones—without the guesswork.
           </h1>
 
-          <p className="text-sm sm:text-base text-[#5A605C] max-w-2xl leading-relaxed">
-            Built around the <strong>PMOS (Polyendocrine Metabolic Ovarian Syndrome)</strong> perspective, Clarity helps you spot how sleep, meals, cycle or perimenopause cues, and individual symptoms connect—stored privately in your browser with a 1-page summary for doctor visits.
+          <p className="text-sm sm:text-base text-[#5A605C] dark:text-[#A4AAA6] max-w-2xl leading-relaxed">
+            Built around the{" "}
+            <strong>PMOS (Polyendocrine Metabolic Ovarian Syndrome)</strong>{" "}
+            perspective, Clarity helps you spot how sleep, meals, cycle or
+            perimenopause cues, and individual symptoms connect—stored privately
+            in your browser with a 1-page summary for doctor visits.
           </p>
 
           <div className="flex flex-wrap items-center gap-3 pt-1">
             <Link
               href="/track"
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#1C1F1D] hover:bg-[#2F5D50] text-[#F7F5F0] text-xs font-semibold tracking-wide transition"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#1C1F1D] hover:bg-[#2F5D50] dark:bg-[#52A88E] dark:hover:bg-[#66B89F] text-[#F7F5F0] dark:text-[#0F1311] text-xs font-semibold tracking-wide transition"
             >
               Start Daily Log <ArrowRight className="w-4 h-4" />
             </Link>
             <Link
               href="/guide"
-              className="inline-flex items-center gap-2 px-5 py-3 rounded-full bg-white border border-[#D5CEC2] hover:border-[#1C1F1D] text-xs font-semibold transition"
+              className="inline-flex items-center gap-2 px-5 py-3 rounded-full bg-white dark:bg-[#181D1A] border border-[#D5CEC2] dark:border-[#2E3631] hover:border-[#1C1F1D] dark:hover:border-[#ECEAE4] text-xs font-semibold transition"
             >
               Explore Habits, Labs &amp; Sources
             </Link>
@@ -180,14 +206,14 @@ export default function HomePage() {
         <section id="learn-pmos" className="space-y-5">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#2F5D50]">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#2F5D50] dark:text-[#66B89F]">
                 Interactive PMOS Primer
               </p>
               <h2 className="font-serif text-2xl sm:text-3xl font-normal mt-1">
                 Tap any card to flip the framing
               </h2>
             </div>
-            <span className="text-xs text-[#6E7570]">
+            <span className="text-xs text-[#6E7570] dark:text-[#8E9691]">
               {Object.values(flippedIds).filter(Boolean).length}/{MYTH_CARDS.length} explored
             </span>
           </div>
@@ -202,22 +228,26 @@ export default function HomePage() {
                   onClick={() => toggleFlip(card.id)}
                   className={`text-left p-6 rounded-2xl border transition cursor-pointer min-h-52 flex flex-col justify-between gap-4 ${
                     isFlipped
-                      ? "bg-[#1C1F1D] text-[#F7F5F0] border-[#1C1F1D]"
-                      : "bg-white/90 text-[#1C1F1D] border-[#E3DDD2] hover:border-[#2F5D50]"
+                      ? "bg-[#1C1F1D] dark:bg-[#232B27] text-[#F7F5F0] border-[#1C1F1D] dark:border-[#52A88E]"
+                      : "bg-white/90 dark:bg-[#181D1A] text-[#1C1F1D] dark:text-[#ECEAE4] border-[#E3DDD2] dark:border-[#252B27] hover:border-[#2F5D50] dark:hover:border-[#66B89F]"
                   }`}
                 >
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <span
                         className={`text-[10px] font-semibold uppercase tracking-widest ${
-                          isFlipped ? "text-[#A7D7C5]" : "text-[#2F5D50]"
+                          isFlipped
+                            ? "text-[#A7D7C5]"
+                            : "text-[#2F5D50] dark:text-[#66B89F]"
                         }`}
                       >
                         {card.tag}
                       </span>
                       <span
                         className={`text-[11px] inline-flex items-center gap-1 ${
-                          isFlipped ? "text-[#D5CEC2]" : "text-[#6E7570]"
+                          isFlipped
+                            ? "text-[#D5CEC2]"
+                            : "text-[#6E7570] dark:text-[#8E9691]"
                         }`}
                       >
                         <RotateCcw className="w-3 h-3" />{" "}
@@ -232,7 +262,9 @@ export default function HomePage() {
 
                   <p
                     className={`text-[11px] ${
-                      isFlipped ? "text-[#A7D7C5]" : "text-[#6E7570]"
+                      isFlipped
+                        ? "text-[#A7D7C5]"
+                        : "text-[#6E7570] dark:text-[#8E9691]"
                     }`}
                   >
                     {isFlipped ? "Tap again to flip back" : "Tap to read why it matters"}
@@ -246,11 +278,11 @@ export default function HomePage() {
         {/* Interactive Day-in-the-Life Explorer + Live Pattern Sandbox */}
         <section
           id="playground"
-          className="grid lg:grid-cols-12 gap-8 items-start bg-white/85 border border-[#E3DDD2] rounded-3xl p-6 sm:p-8"
+          className="grid lg:grid-cols-12 gap-8 items-start bg-white/85 dark:bg-[#181D1A] border border-[#E3DDD2] dark:border-[#252B27] rounded-3xl p-6 sm:p-8"
         >
           {/* Left 5 Cols: Time-of-Day Interactive Layer */}
           <div className="lg:col-span-5 space-y-4">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#2F5D50]">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#2F5D50] dark:text-[#66B89F]">
               How Signals Shift
             </p>
             <h2 className="font-serif text-2xl font-normal">
@@ -267,14 +299,16 @@ export default function HomePage() {
                     onClick={() => setActiveWindow(win.key)}
                     className={`p-3 rounded-xl border text-left transition cursor-pointer ${
                       active
-                        ? "bg-[#2F5D50] text-[#F7F5F0] border-[#2F5D50]"
-                        : "bg-[#F7F5F0] text-[#1C1F1D] border-[#D8D0C3] hover:border-[#1C1F1D]"
+                        ? "bg-[#2F5D50] dark:bg-[#52A88E] text-[#F7F5F0] dark:text-[#0F1311] border-[#2F5D50] dark:border-[#52A88E]"
+                        : "bg-[#F7F5F0] dark:bg-[#121614] text-[#1C1F1D] dark:text-[#ECEAE4] border-[#D8D0C3] dark:border-[#2B322E] hover:border-[#1C1F1D] dark:hover:border-[#ECEAE4]"
                     }`}
                   >
                     <p className="text-xs font-semibold">{win.label}</p>
                     <p
                       className={`text-[10px] mt-0.5 ${
-                        active ? "text-[#D9ECE6]" : "text-[#6E7570]"
+                        active
+                          ? "text-[#D9ECE6] dark:text-[#16211D]"
+                          : "text-[#6E7570] dark:text-[#8E9691]"
                       }`}
                     >
                       {win.cue}
@@ -284,11 +318,11 @@ export default function HomePage() {
               })}
             </div>
 
-            <div className="p-4 rounded-2xl bg-[#F7F5F0] border border-[#E3DDD2] space-y-2">
-              <p className="font-serif text-base font-medium text-[#1C1F1D]">
+            <div className="p-4 rounded-2xl bg-[#F7F5F0] dark:bg-[#121614] border border-[#E3DDD2] dark:border-[#252B27] space-y-2">
+              <p className="font-serif text-base font-medium">
                 {currentWindow.label} — {currentWindow.cue}
               </p>
-              <p className="text-xs text-[#5A605C] leading-relaxed">
+              <p className="text-xs text-[#5A605C] dark:text-[#A4AAA6] leading-relaxed">
                 {currentWindow.detail}
               </p>
             </div>
@@ -298,14 +332,14 @@ export default function HomePage() {
           <div className="lg:col-span-7 space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#2F5D50]">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#2F5D50] dark:text-[#66B89F]">
                   Interactive Sandbox
                 </p>
                 <h3 className="font-serif text-xl font-normal">
                   Toggle factors to preview focus vs. fog
                 </h3>
               </div>
-              <span className="text-[11px] text-[#6E7570]">
+              <span className="text-[11px] text-[#6E7570] dark:text-[#8E9691]">
                 Illustrative preview
               </span>
             </div>
@@ -316,8 +350,8 @@ export default function HomePage() {
                 onClick={() => setShortSleepSim((v) => !v)}
                 className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold border transition cursor-pointer ${
                   shortSleepSim
-                    ? "bg-[#1C1F1D] text-[#F7F5F0] border-[#1C1F1D]"
-                    : "bg-[#F7F5F0] text-[#4F5551] border-[#D8D0C3]"
+                    ? "bg-[#1C1F1D] dark:bg-[#ECEAE4] text-[#F7F5F0] dark:text-[#111412] border-[#1C1F1D] dark:border-[#ECEAE4]"
+                    : "bg-[#F7F5F0] dark:bg-[#121614] text-[#4F5551] dark:text-[#A4AAA6] border-[#D8D0C3] dark:border-[#2B322E]"
                 }`}
               >
                 <Moon className="w-3.5 h-3.5" /> Sleep &lt;6.5h
@@ -328,8 +362,8 @@ export default function HomePage() {
                 onClick={() => setLateCarbSim((v) => !v)}
                 className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold border transition cursor-pointer ${
                   lateCarbSim
-                    ? "bg-[#1C1F1D] text-[#F7F5F0] border-[#1C1F1D]"
-                    : "bg-[#F7F5F0] text-[#4F5551] border-[#D8D0C3]"
+                    ? "bg-[#1C1F1D] dark:bg-[#ECEAE4] text-[#F7F5F0] dark:text-[#111412] border-[#1C1F1D] dark:border-[#ECEAE4]"
+                    : "bg-[#F7F5F0] dark:bg-[#121614] text-[#4F5551] dark:text-[#A4AAA6] border-[#D8D0C3] dark:border-[#2B322E]"
                 }`}
               >
                 <Brain className="w-3.5 h-3.5" /> Late High-Carb Meal
@@ -340,15 +374,15 @@ export default function HomePage() {
                 onClick={() => setPerimenoSim((v) => !v)}
                 className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold border transition cursor-pointer ${
                   perimenoSim
-                    ? "bg-[#1C1F1D] text-[#F7F5F0] border-[#1C1F1D]"
-                    : "bg-[#F7F5F0] text-[#4F5551] border-[#D8D0C3]"
+                    ? "bg-[#1C1F1D] dark:bg-[#ECEAE4] text-[#F7F5F0] dark:text-[#111412] border-[#1C1F1D] dark:border-[#ECEAE4]"
+                    : "bg-[#F7F5F0] dark:bg-[#121614] text-[#4F5551] dark:text-[#A4AAA6] border-[#D8D0C3] dark:border-[#2B322E]"
                 }`}
               >
                 <HeartPulse className="w-3.5 h-3.5" /> Perimeno / Irregular Cue
               </button>
             </div>
 
-            <div className="h-56 w-full bg-[#F7F5F0] rounded-2xl p-3 border border-[#E3DDD2]">
+            <div className="h-56 w-full bg-[#F7F5F0] dark:bg-[#121614] rounded-2xl p-3 border border-[#E3DDD2] dark:border-[#252B27]">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={simData}>
                   <CartesianGrid stroke="#E6E0D5" strokeDasharray="3 3" />
@@ -385,13 +419,13 @@ export default function HomePage() {
             </div>
 
             <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-              <span className="inline-flex items-center gap-1.5 text-xs text-[#5A605C]">
-                <CheckCircle2 className="w-4 h-4 text-[#2F5D50]" />
+              <span className="inline-flex items-center gap-1.5 text-xs text-[#5A605C] dark:text-[#A4AAA6]">
+                <CheckCircle2 className="w-4 h-4 text-[#2F5D50] dark:text-[#66B89F]" />
                 100% browser-stored · No account required
               </span>
               <Link
                 href="/track"
-                className="inline-flex items-center gap-1.5 px-5 py-2 rounded-full bg-[#2F5D50] hover:bg-[#1C1F1D] text-[#F7F5F0] text-xs font-semibold transition"
+                className="inline-flex items-center gap-1.5 px-5 py-2 rounded-full bg-[#2F5D50] hover:bg-[#1C1F1D] dark:bg-[#52A88E] dark:hover:bg-[#66B89F] text-[#F7F5F0] dark:text-[#0F1311] text-xs font-semibold transition"
               >
                 Log Your Real Day <ArrowRight className="w-3.5 h-3.5" />
               </Link>
@@ -401,16 +435,16 @@ export default function HomePage() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-[#E3DDD2] bg-[#F7F5F0] py-8 px-6 text-xs text-[#6E7570]">
+      <footer className="border-t border-[#E3DDD2] dark:border-[#252B27] bg-[#F7F5F0] dark:bg-[#111412] py-8 px-6 text-xs text-[#6E7570] dark:text-[#8E9691]">
         <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <p>
             Clarity — Educational PMOS &amp; metabolic-cognitive companion. Not medical advice or diagnosis.
           </p>
           <div className="flex items-center gap-5">
-            <Link href="/track" className="hover:text-[#1C1F1D]">
+            <Link href="/track" className="hover:text-[#1C1F1D] dark:hover:text-[#ECEAE4]">
               Tracker
             </Link>
-            <Link href="/guide" className="hover:text-[#1C1F1D]">
+            <Link href="/guide" className="hover:text-[#1C1F1D] dark:hover:text-[#ECEAE4]">
               Guide &amp; Citations
             </Link>
           </div>
