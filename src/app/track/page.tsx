@@ -26,12 +26,18 @@ import {
   Activity,
   Layers,
   AlertCircle,
+  X,
+  HeartPulse,
 } from "lucide-react";
 import GamificationBar from "@/components/GamificationBar";
 import CognitiveMiniTest from "@/components/CognitiveMiniTest";
 import StroopGame from "@/components/StroopGame";
 
-type HormonePhase = "Follicular" | "Ovulatory" | "Luteal" | "Irregular / Suppressed";
+type HormonePhase =
+  | "Follicular"
+  | "Ovulatory"
+  | "Luteal"
+  | "Perimenopause / Irregular";
 
 interface DailyEntry {
   id: string;
@@ -42,12 +48,24 @@ interface DailyEntry {
   mood: number;
   sleepHours: number;
   cycleDay: string;
-  hormonePhase: HormonePhase;
+  hormonePhase: HormonePhase | null;
   symptoms: string[];
+  symptomScores: Record<string, number>;
   triggers: string[];
+  bpSystolic?: number;
+  bpDiastolic?: number;
+  restingHr?: number;
   notes: string;
   reactionMs?: number;
   stroopScore?: number;
+}
+
+interface LipidSnapshot {
+  date: string;
+  ldl: string;
+  hdl: string;
+  triglycerides: string;
+  hba1c: string;
 }
 
 interface CognitiveRun {
@@ -60,17 +78,53 @@ const HORMONE_PHASES: { label: HormonePhase; color: string; short: string }[] = 
   { label: "Follicular", color: "#4D8B7A", short: "Follicular" },
   { label: "Ovulatory", color: "#D99B26", short: "Ovulatory" },
   { label: "Luteal", color: "#B86B4B", short: "Luteal" },
-  { label: "Irregular / Suppressed", color: "#7C858E", short: "Suppressed / Irreg." },
+  {
+    label: "Perimenopause / Irregular",
+    color: "#7C858E",
+    short: "Perimeno / Irreg.",
+  },
 ];
 
-const SYMPTOM_OPTIONS = [
-  "Afternoon Crash",
-  "Sugar Cravings",
-  "Word-Finding Slip",
-  "Restless Sleep",
-  "Bloating",
-  "Headache",
-  "Steady Energy",
+const SYMPTOM_CATEGORIES: { category: string; items: string[] }[] = [
+  {
+    category: "Cardiometabolic & Vascular",
+    items: [
+      "Palpitations / Racing Heart",
+      "Exertional Fatigue / Breathlessness",
+      "Dizziness / Lightheadedness",
+      "Swelling / Fluid Retention",
+    ],
+  },
+  {
+    category: "Perimenopause & Hormonal",
+    items: [
+      "Hot Flashes",
+      "Night Sweats",
+      "Cycle Spotting / Irregularity",
+      "Breast Tenderness",
+      "Acne / Skin Flare",
+      "Hair Shedding",
+    ],
+  },
+  {
+    category: "GI & Glycemic",
+    items: [
+      "Bloating",
+      "Afternoon Crash",
+      "Sugar Cravings",
+      "GI / Nausea",
+    ],
+  },
+  {
+    category: "Cognitive & Pain",
+    items: [
+      "Word-Finding Slip",
+      "Restless Sleep",
+      "Headache",
+      "Pelvic / Cramp Pain",
+      "Body / Joint Ache",
+    ],
+  },
 ];
 
 const TRIGGER_OPTIONS = [
@@ -78,12 +132,14 @@ const TRIGGER_OPTIONS = [
   "Poor Sleep (<6.5h)",
   "Late Meal / High Carb",
   "High Caffeine",
-  "Med / Supplement",
+  "Med / Statin / Supplement",
   "Post-Meal Walk",
 ];
 
-const STORAGE_KEY = "clarity_pmos_entries_v6";
-const STATS_KEY = "clarity_pmos_stats_v6";
+const STORAGE_KEY = "clarity_pmos_entries_v8";
+const STATS_KEY = "clarity_pmos_stats_v8";
+const LIPIDS_KEY = "clarity_pmos_lipids_v1";
+const CUSTOM_SYMPTOMS_KEY = "clarity_pmos_custom_symptoms_v1";
 
 // --- Web Crypto AES-GCM Helpers ---
 async function deriveKey(password: string, salt: Uint8Array) {
@@ -99,7 +155,7 @@ async function deriveKey(password: string, salt: Uint8Array) {
     {
       name: "PBKDF2",
       salt: salt.buffer as ArrayBuffer,
-      iterations: 100000,
+      iterations: 150000,
       hash: "SHA-256",
     },
     keyMaterial,
@@ -123,7 +179,7 @@ async function encryptPayload(payloadObj: unknown, password: string): Promise<st
     btoa(String.fromCharCode(...Array.from(buf)));
   return JSON.stringify({
     app: "Clarity-PMOS",
-    v: 1,
+    v: 3,
     salt: toBase64(salt),
     iv: toBase64(iv),
     ciphertext: toBase64(new Uint8Array(cipherBuffer)),
@@ -162,7 +218,9 @@ function isValidEntry(item: unknown): item is DailyEntry {
     typeof e.focus === "number" &&
     e.focus >= 1 &&
     e.focus <= 10 &&
-    typeof e.sleepHours === "number"
+    typeof e.sleepHours === "number" &&
+    Array.isArray(e.symptoms) &&
+    Array.isArray(e.triggers)
   );
 }
 
@@ -175,11 +233,27 @@ export default function TrackPage() {
   const [savedBanner, setSavedBanner] = useState(false);
   const [formError, setFormError] = useState("");
 
-  // Chart Overlays
+  // Custom Symptom Catalog & Active Category Tab
+  const [customSymptoms, setCustomSymptoms] = useState<string[]>([]);
+  const [newSymptomText, setNewSymptomText] = useState("");
+  const [activeCategory, setActiveCategory] = useState<string>("ALL");
+
+  // Cardiometabolic Lipid Snapshot
+  const [lipids, setLipids] = useState<LipidSnapshot>({
+    date: "",
+    ldl: "",
+    hdl: "",
+    triglycerides: "",
+    hba1c: "",
+  });
+  const [lipidsSavedMsg, setLipidsSavedMsg] = useState(false);
+
+  // Chart Overlays & Individual Symptom Analysis Selector
   const [showPhaseOverlay, setShowPhaseOverlay] = useState(true);
   const [showReactionOverlay, setShowReactionOverlay] = useState(true);
+  const [selectedSymptomFilter, setSelectedSymptomFilter] = useState<string>("ALL");
 
-  // Encrypted Backup Modal/Drawer State
+  // Encrypted Backup State
   const [backupOpen, setBackupOpen] = useState(false);
   const [backupPass, setBackupPass] = useState("");
   const [backupStatus, setBackupStatus] = useState("");
@@ -190,21 +264,25 @@ export default function TrackPage() {
   const [date, setDate] = useState("");
   const [printDate, setPrintDate] = useState("");
 
-  // Form State (Unrated nulls prevent accidental junk saves)
+  // Form State
   const [brainFog, setBrainFog] = useState<number | null>(null);
   const [focus, setFocus] = useState<number | null>(null);
   const [energy, setEnergy] = useState<number | null>(null);
   const [mood, setMood] = useState<number | null>(null);
   const [sleepHours, setSleepHours] = useState<string>("");
   const [cycleDay, setCycleDay] = useState<string>("");
-  const [hormonePhase, setHormonePhase] = useState<HormonePhase>("Follicular");
-  const [symptoms, setSymptoms] = useState<string[]>([]);
+  const [hormonePhase, setHormonePhase] = useState<HormonePhase | null>(null);
+  const [symptomScores, setSymptomScores] = useState<Record<string, number>>({});
   const [triggers, setTriggers] = useState<string[]>([]);
+  const [bpSystolic, setBpSystolic] = useState<string>("");
+  const [bpDiastolic, setBpDiastolic] = useState<string>("");
+  const [restingHr, setRestingHr] = useState<string>("");
   const [notes, setNotes] = useState("");
 
   useEffect(() => {
     const now = new Date();
     const iso = format(now, "yyyy-MM-dd");
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setTodayIso(iso);
     setDate((prev) => prev || iso);
     setPrintDate(format(now, "MMM d, yyyy"));
@@ -213,7 +291,16 @@ export default function TrackPage() {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) setEntries(parsed.filter(isValidEntry));
+        if (Array.isArray(parsed)) {
+          const valid = parsed.filter(isValidEntry).map((e) => ({
+            ...e,
+            symptomScores:
+              e.symptomScores && typeof e.symptomScores === "object"
+                ? e.symptomScores
+                : Object.fromEntries(e.symptoms.map((s) => [s, 3])),
+          }));
+          setEntries(valid);
+        }
       }
       const rawStats = localStorage.getItem(STATS_KEY);
       if (rawStats) {
@@ -223,10 +310,34 @@ export default function TrackPage() {
         setBestStroopScore(parsed.bestStroopScore ?? null);
         setRuns(Array.isArray(parsed.runs) ? parsed.runs : []);
       }
+      const rawLipids = localStorage.getItem(LIPIDS_KEY);
+      if (rawLipids) {
+        const parsedLipids = JSON.parse(rawLipids);
+        if (parsedLipids && typeof parsedLipids === "object") {
+          setLipids((prev) => ({ ...prev, ...parsedLipids }));
+        }
+      }
+      const rawCustom = localStorage.getItem(CUSTOM_SYMPTOMS_KEY);
+      if (rawCustom) {
+        const parsedCustom = JSON.parse(rawCustom);
+        if (Array.isArray(parsedCustom)) setCustomSymptoms(parsedCustom);
+      }
     } catch {
       // ignore storage errors
     }
   }, []);
+
+  const visibleSymptoms = useMemo(() => {
+    const base =
+      activeCategory === "ALL"
+        ? SYMPTOM_CATEGORIES.flatMap((c) => c.items)
+        : SYMPTOM_CATEGORIES.find((c) => c.category === activeCategory)?.items ||
+          [];
+    if (activeCategory === "ALL") {
+      return Array.from(new Set([...base, ...customSymptoms]));
+    }
+    return base;
+  }, [activeCategory, customSymptoms]);
 
   const persistEntries = (next: DailyEntry[]) => {
     const sorted = [...next].sort((a, b) => a.date.localeCompare(b.date));
@@ -255,13 +366,50 @@ export default function TrackPage() {
     );
   };
 
-  const toggleItem = (
-    item: string,
-    setter: React.Dispatch<React.SetStateAction<string[]>>
-  ) => {
-    setter((prev) =>
+  const handleSaveLipids = () => {
+    const toSave = { ...lipids, date: lipids.date || todayIso };
+    setLipids(toSave);
+    localStorage.setItem(LIPIDS_KEY, JSON.stringify(toSave));
+    setLipidsSavedMsg(true);
+    setTimeout(() => setLipidsSavedMsg(false), 2500);
+  };
+
+  const toggleTrigger = (item: string) => {
+    setTriggers((prev) =>
       prev.includes(item) ? prev.filter((x) => x !== item) : [...prev, item]
     );
+  };
+
+  const toggleSymptom = (sym: string) => {
+    setSymptomScores((prev) => {
+      const copy = { ...prev };
+      if (sym in copy) {
+        delete copy[sym];
+      } else {
+        copy[sym] = 2;
+      }
+      return copy;
+    });
+  };
+
+  const setSymptomSeverity = (sym: string, score: number) => {
+    setSymptomScores((prev) => ({ ...prev, [sym]: score }));
+  };
+
+  const handleAddCustomSymptom = () => {
+    const clean = newSymptomText.trim();
+    if (!clean) return;
+    const allKnown = [
+      ...SYMPTOM_CATEGORIES.flatMap((c) => c.items),
+      ...customSymptoms,
+    ];
+    if (!allKnown.some((s) => s.toLowerCase() === clean.toLowerCase())) {
+      const updated = [...customSymptoms, clean];
+      setCustomSymptoms(updated);
+      localStorage.setItem(CUSTOM_SYMPTOMS_KEY, JSON.stringify(updated));
+    }
+    setSymptomScores((prev) => ({ ...prev, [clean]: prev[clean] ?? 2 }));
+    setNewSymptomText("");
   };
 
   const handleSaveEntry = (e: React.FormEvent) => {
@@ -274,7 +422,9 @@ export default function TrackPage() {
       energy === null ||
       mood === null
     ) {
-      setFormError("Please rate all four sliders (Fog, Focus, Energy, Mood) before saving.");
+      setFormError(
+        "Please rate all four sliders (Fog, Focus, Energy, Mood) before saving."
+      );
       return;
     }
 
@@ -287,7 +437,6 @@ export default function TrackPage() {
     const entryDate = date || todayIso || "2026-01-01";
     const existing = entries.find((item) => item.date === entryDate);
 
-    // Attach any mini-test runs taken BEFORE saving this day's entry
     const sameDayRuns = runs.filter((r) => r.date === entryDate);
     const latestReaction = [...sameDayRuns]
       .reverse()
@@ -295,6 +444,10 @@ export default function TrackPage() {
     const latestStroop = [...sameDayRuns]
       .reverse()
       .find((r) => typeof r.stroopScore === "number")?.stroopScore;
+
+    const sys = bpSystolic ? Number(bpSystolic) : undefined;
+    const dia = bpDiastolic ? Number(bpDiastolic) : undefined;
+    const hr = restingHr ? Number(restingHr) : undefined;
 
     const newEntry: DailyEntry = {
       id: `${entryDate}-${Date.now()}`,
@@ -306,8 +459,12 @@ export default function TrackPage() {
       sleepHours: parsedSleep,
       cycleDay: cycleDay.trim() || "N/A",
       hormonePhase,
-      symptoms,
+      symptoms: Object.keys(symptomScores),
+      symptomScores: { ...symptomScores },
       triggers,
+      bpSystolic: sys && !isNaN(sys) ? sys : undefined,
+      bpDiastolic: dia && !isNaN(dia) ? dia : undefined,
+      restingHr: hr && !isNaN(hr) ? hr : undefined,
       notes,
       reactionMs: latestReaction ?? existing?.reactionMs,
       stroopScore: latestStroop ?? existing?.stroopScore,
@@ -334,7 +491,6 @@ export default function TrackPage() {
       },
     ].slice(-60);
 
-    // Also attach immediately if that date's entry already exists
     if (entries.some((e) => e.date === targetDate)) {
       const updatedEntries = entries.map((entry) => {
         if (entry.date !== targetDate) return entry;
@@ -373,33 +529,55 @@ export default function TrackPage() {
       "Ovulatory",
       "Luteal",
       "Luteal",
-      "Irregular / Suppressed",
-      "Irregular / Suppressed",
+      "Perimenopause / Irregular",
+      "Perimenopause / Irregular",
     ];
     const demo: DailyEntry[] = Array.from({ length: 7 }).map((_, idx) => {
       const d = format(subDays(baseDate, 6 - idx), "yyyy-MM-dd");
-      const lowSleep = idx === 1 || idx === 4;
+      const prevShortSleep = idx === 1 || idx === 3 || idx === 5;
+      const isShortSleepNight = idx === 0 || idx === 2 || idx === 4;
+      const isPerimeno = demoPhases[idx] === "Perimenopause / Irregular";
+      const isLuteal = demoPhases[idx] === "Luteal";
+
+      const scores: Record<string, number> = {};
+      if (isPerimeno) {
+        scores["Hot Flashes"] = 3;
+        scores["Night Sweats"] = 3;
+        scores["Palpitations / Racing Heart"] = 2;
+      }
+      if (isLuteal) {
+        scores["Bloating"] = 4;
+        scores["Breast Tenderness"] = 2;
+      }
+      if (prevShortSleep) {
+        scores["Afternoon Crash"] = 4;
+        scores["Sugar Cravings"] = 3;
+        scores["Word-Finding Slip"] = 3;
+      }
+
       return {
         id: `demo-${idx}`,
         date: d,
-        brainFog: lowSleep ? 8 : idx === 3 ? 6 : 3,
-        focus: lowSleep ? 4 : idx === 3 ? 6 : 8,
-        energy: lowSleep ? 4 : 7,
-        mood: lowSleep ? 5 : 8,
-        sleepHours: lowSleep ? 5.5 : 7.5 + (idx % 2) * 0.5,
-        cycleDay: idx >= 5 ? "N/A" : String(10 + idx * 3),
+        brainFog: prevShortSleep ? 8 : isPerimeno ? 6 : 3,
+        focus: prevShortSleep ? 4 : isPerimeno ? 6 : 8,
+        energy: prevShortSleep ? 4 : 7,
+        mood: prevShortSleep ? 5 : 8,
+        sleepHours: isShortSleepNight ? 5.5 : 7.8,
+        cycleDay: isPerimeno ? "N/A" : String(10 + idx * 3),
         hormonePhase: demoPhases[idx],
-        symptoms: lowSleep
-          ? ["Afternoon Crash", "Sugar Cravings", "Word-Finding Slip"]
-          : ["Steady Energy"],
-        triggers: lowSleep
+        symptoms: Object.keys(scores),
+        symptomScores: scores,
+        triggers: isShortSleepNight
           ? ["Poor Sleep (<6.5h)", "Late Meal / High Carb", "High Caffeine"]
-          : ["Post-Meal Walk", "Med / Supplement"],
-        notes: lowSleep
-          ? "Short sleep + late dinner; slower recall the next morning."
-          : "Protein breakfast and 10-min walk kept afternoon focus steady.",
-        reactionMs: lowSleep ? 445 : 335 + idx * 5,
-        stroopScore: lowSleep ? 6 : 10,
+          : ["Post-Meal Walk", "Med / Statin / Supplement"],
+        bpSystolic: isPerimeno ? 128 : 118,
+        bpDiastolic: isPerimeno ? 82 : 76,
+        restingHr: isPerimeno ? 78 : 68,
+        notes: prevShortSleep
+          ? "Short sleep + late dinner; noticed afternoon crash and word-finding drag."
+          : "Protein breakfast and post-meal walk kept afternoon energy steady.",
+        reactionMs: prevShortSleep ? 445 : 335 + idx * 4,
+        stroopScore: prevShortSleep ? 6 : 10,
       };
     });
     const demoRuns: CognitiveRun[] = demo.map((d) => ({
@@ -420,15 +598,19 @@ export default function TrackPage() {
     persistStats(0, null, null, []);
   };
 
-  // Encrypted Export / Import Handlers with Schema Validation & Merge Option
+  // Encrypted Export / Import Handlers
   const handleEncryptedExport = async () => {
-    if (!backupPass.trim()) {
-      setBackupStatus("Enter a passphrase first.");
+    if (backupPass.trim().length < 8) {
+      setBackupStatus("Use a passphrase of at least 8 characters.");
       return;
     }
     try {
       const cipherJson = await encryptPayload(
-        { entries, stats: { xp, bestReactionMs, bestStroopScore, runs } },
+        {
+          entries,
+          lipids,
+          stats: { xp, bestReactionMs, bestStroopScore, runs },
+        },
         backupPass
       );
       const blob = new Blob([cipherJson], { type: "application/json" });
@@ -449,8 +631,10 @@ export default function TrackPage() {
   ) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!backupPass.trim()) {
-      setBackupStatus("Enter your backup passphrase before selecting a file.");
+    if (backupPass.trim().length < 8) {
+      setBackupStatus(
+        "Enter your backup passphrase (min 8 chars) before selecting a file."
+      );
       e.target.value = "";
       return;
     }
@@ -460,16 +644,36 @@ export default function TrackPage() {
       if (!Array.isArray(restored.entries)) {
         throw new Error("Backup contains no valid entry array.");
       }
-      const validImported = restored.entries.filter(isValidEntry);
+      const validImported: DailyEntry[] = restored.entries
+        .filter(isValidEntry)
+        .map((item: DailyEntry) => ({
+          ...item,
+          symptomScores:
+            item.symptomScores && typeof item.symptomScores === "object"
+              ? item.symptomScores
+              : Object.fromEntries(item.symptoms.map((s) => [s, 3])),
+        }));
+
       if (validImported.length === 0 && restored.entries.length > 0) {
         throw new Error("Entries failed schema validation.");
       }
 
       if (entries.length > 0) {
-        const replaceAll = window.confirm(
-          `Found ${validImported.length} valid entries in backup.\n\nClick OK to REPLACE your current ${entries.length} entries, or Cancel to MERGE by date.`
-        );
-        if (replaceAll) {
+        const choice = window
+          .prompt(
+            `Found ${validImported.length} verified entries in backup.\nType MERGE to combine by date, REPLACE to overwrite current ${entries.length} entries, or Cancel to abort:`,
+            "MERGE"
+          )
+          ?.trim()
+          .toUpperCase();
+
+        if (!choice || (choice !== "MERGE" && choice !== "REPLACE")) {
+          setBackupStatus("Import cancelled.");
+          e.target.value = "";
+          return;
+        }
+
+        if (choice === "REPLACE") {
           persistEntries(validImported);
         } else {
           const map = new Map<string, DailyEntry>();
@@ -481,18 +685,46 @@ export default function TrackPage() {
         persistEntries(validImported);
       }
 
+      if (restored.lipids && typeof restored.lipids === "object") {
+        setLipids(restored.lipids);
+        localStorage.setItem(LIPIDS_KEY, JSON.stringify(restored.lipids));
+      }
+
       if (restored.stats && typeof restored.stats === "object") {
-        const importedRuns = Array.isArray(restored.stats.runs)
+        const importedRuns: CognitiveRun[] = Array.isArray(restored.stats.runs)
           ? restored.stats.runs
           : [];
+        const dedupedRuns = Array.from(
+          new Map(
+            [...runs, ...importedRuns].map((r) => [
+              `${r.date}-${r.reactionMs ?? ""}-${r.stroopScore ?? ""}`,
+              r,
+            ])
+          ).values()
+        ).slice(-60);
+
+        const mergedBestRx =
+          bestReactionMs !== null &&
+          typeof restored.stats.bestReactionMs === "number"
+            ? Math.min(bestReactionMs, restored.stats.bestReactionMs)
+            : restored.stats.bestReactionMs ?? bestReactionMs;
+
+        const mergedBestStroop =
+          bestStroopScore !== null &&
+          typeof restored.stats.bestStroopScore === "number"
+            ? Math.max(bestStroopScore, restored.stats.bestStroopScore)
+            : restored.stats.bestStroopScore ?? bestStroopScore;
+
         persistStats(
           Math.max(xp, Number(restored.stats.xp) || 0),
-          restored.stats.bestReactionMs ?? bestReactionMs,
-          restored.stats.bestStroopScore ?? bestStroopScore,
-          [...runs, ...importedRuns].slice(-60)
+          mergedBestRx,
+          mergedBestStroop,
+          dedupedRuns
         );
       }
-      setBackupStatus(`Successfully imported ${validImported.length} verified entries.`);
+      setBackupStatus(
+        `Successfully imported ${validImported.length} verified entries.`
+      );
     } catch (err) {
       setBackupStatus(
         err instanceof Error
@@ -504,7 +736,7 @@ export default function TrackPage() {
     }
   };
 
-  // True Consecutive-Day Streak (anchored to today or yesterday)
+  // True Consecutive-Day Streak
   const streak = useMemo(() => {
     if (entries.length === 0 || !todayIso) return 0;
     const uniqueDates = Array.from(new Set(entries.map((e) => e.date))).sort(
@@ -549,7 +781,77 @@ export default function TrackPage() {
     return { baselineMs, baselineStroop };
   }, [runs]);
 
-  // Metabolic, Sleep & Phase Correlation Engine (with sample-size guards & true next-day pairing)
+  // Individual Symptom Breakdown
+  const symptomBreakdown = useMemo(() => {
+    const stats: Record<
+      string,
+      {
+        name: string;
+        daysLogged: number;
+        totalSeverity: number;
+        phaseTotals: Record<string, { sum: number; count: number }>;
+        triggerCounts: Record<string, number>;
+      }
+    > = {};
+
+    entries.forEach((e) => {
+      const scores = e.symptomScores || {};
+      Object.entries(scores).forEach(([sym, sev]) => {
+        if (!stats[sym]) {
+          stats[sym] = {
+            name: sym,
+            daysLogged: 0,
+            totalSeverity: 0,
+            phaseTotals: {},
+            triggerCounts: {},
+          };
+        }
+        stats[sym].daysLogged += 1;
+        stats[sym].totalSeverity += sev;
+
+        const phaseLabel = e.hormonePhase || "Unspecified";
+        if (!stats[sym].phaseTotals[phaseLabel]) {
+          stats[sym].phaseTotals[phaseLabel] = { sum: 0, count: 0 };
+        }
+        stats[sym].phaseTotals[phaseLabel].sum += sev;
+        stats[sym].phaseTotals[phaseLabel].count += 1;
+
+        (e.triggers || []).forEach((t) => {
+          stats[sym].triggerCounts[t] = (stats[sym].triggerCounts[t] || 0) + 1;
+        });
+      });
+    });
+
+    return Object.values(stats)
+      .map((item) => {
+        const avgSeverity = Number(
+          (item.totalSeverity / item.daysLogged).toFixed(1)
+        );
+        const topPhaseEntry = Object.entries(item.phaseTotals)
+          .map(([p, v]) => ({ phase: p, avg: v.sum / v.count, count: v.count }))
+          .sort((a, b) => b.avg - a.avg)[0];
+        const topTriggerEntry = Object.entries(item.triggerCounts).sort(
+          (a, b) => b[1] - a[1]
+        )[0];
+
+        return {
+          name: item.name,
+          daysLogged: item.daysLogged,
+          avgSeverity,
+          peakPhase: topPhaseEntry
+            ? `${topPhaseEntry.phase} (${topPhaseEntry.avg.toFixed(1)}/5, n=${topPhaseEntry.count})`
+            : "—",
+          topTrigger: topTriggerEntry
+            ? `${topTriggerEntry[0]} (${topTriggerEntry[1]}d)`
+            : "—",
+        };
+      })
+      .sort(
+        (a, b) => b.daysLogged - a.daysLogged || b.avgSeverity - a.avgSeverity
+      );
+  }, [entries]);
+
+  // Pattern Engine
   const analytics = useMemo(() => {
     if (entries.length === 0) return null;
     const avgFog = (
@@ -562,10 +864,23 @@ export default function TrackPage() {
       entries.reduce((s, e) => s + e.sleepHours, 0) / entries.length
     ).toFixed(1);
 
+    const bpEntries = entries.filter(
+      (e) => typeof e.bpSystolic === "number" && typeof e.bpDiastolic === "number"
+    );
+    const avgBp =
+      bpEntries.length > 0
+        ? `${Math.round(
+            bpEntries.reduce((s, e) => s + (e.bpSystolic || 0), 0) /
+              bpEntries.length
+          )}/${Math.round(
+            bpEntries.reduce((s, e) => s + (e.bpDiastolic || 0), 0) /
+              bpEntries.length
+          )}`
+        : null;
+
     const nudges: string[] = [];
     const MIN_BUCKET = 3;
 
-    // Pair consecutive days (entries[i] -> entries[i + 1]) for true next-day effects
     const nextDayPairs: { prev: DailyEntry; next: DailyEntry }[] = [];
     for (let i = 0; i < entries.length - 1; i++) {
       const d1 = parseISO(entries[i].date);
@@ -575,7 +890,6 @@ export default function TrackPage() {
       }
     }
 
-    // 1. Sleep duration -> Next-day Focus (requires >= 3 days per bucket)
     const afterShortSleep = nextDayPairs.filter((p) => p.prev.sleepHours < 6.5);
     const afterGoodSleep = nextDayPairs.filter((p) => p.prev.sleepHours >= 6.5);
     if (
@@ -602,7 +916,6 @@ export default function TrackPage() {
       }
     }
 
-    // 2. Late Meal / High Carb -> Next-day Brain Fog (requires >= 3 days per bucket)
     const afterLateCarb = nextDayPairs.filter((p) =>
       p.prev.triggers?.includes("Late Meal / High Carb")
     );
@@ -626,14 +939,15 @@ export default function TrackPage() {
       );
     }
 
-    // 3. Hormone Phase Pattern (requires >= 3 days in top phase and >= 5 total entries)
     if (entries.length >= 5) {
       const phaseMap: Record<string, { totalFog: number; count: number }> = {};
       entries.forEach((e) => {
-        const p = e.hormonePhase || "Follicular";
-        if (!phaseMap[p]) phaseMap[p] = { totalFog: 0, count: 0 };
-        phaseMap[p].totalFog += e.brainFog;
-        phaseMap[p].count += 1;
+        if (!e.hormonePhase) return;
+        if (!phaseMap[e.hormonePhase]) {
+          phaseMap[e.hormonePhase] = { totalFog: 0, count: 0 };
+        }
+        phaseMap[e.hormonePhase].totalFog += e.brainFog;
+        phaseMap[e.hormonePhase].count += 1;
       });
       const rankedPhases = Object.entries(phaseMap)
         .filter(([, d]) => d.count >= MIN_BUCKET)
@@ -647,27 +961,31 @@ export default function TrackPage() {
       if (rankedPhases.length > 0 && Object.keys(phaseMap).length > 1) {
         const top = rankedPhases[0];
         nudges.push(
-          `Early observation: highest average brain fog (${top.avg.toFixed(
+          `Highest average brain fog (${top.avg.toFixed(
             1
-          )}/10 across n=${top.count} logged days) appears during ${top.phase}.`
+          )}/10 across n=${top.count} days) clusters during your ${top.phase} phase.`
         );
       }
     }
 
-    // 4. Same-day Post-Meal Walk association (requires >= 3 days)
     const walkDays = entries.filter((e) =>
       e.triggers?.includes("Post-Meal Walk")
     );
-    if (walkDays.length >= MIN_BUCKET) {
+    const nonWalkDays = entries.filter(
+      (e) => !e.triggers?.includes("Post-Meal Walk")
+    );
+    if (walkDays.length >= MIN_BUCKET && nonWalkDays.length >= MIN_BUCKET) {
       const walkFocus = (
         walkDays.reduce((s, e) => s + e.focus, 0) / walkDays.length
       ).toFixed(1);
+      const nonWalkFocus = (
+        nonWalkDays.reduce((s, e) => s + e.focus, 0) / nonWalkDays.length
+      ).toFixed(1);
       nudges.push(
-        `Days tagged "Post-Meal Walk" average ${walkFocus}/10 focus (n=${walkDays.length} days).`
+        `Focus averages ${walkFocus}/10 on "Post-Meal Walk" days vs. ${nonWalkFocus}/10 on non-walk days (n=${walkDays.length} vs ${nonWalkDays.length} days).`
       );
     }
 
-    // Top Triggers & Symptoms for Doctor Brief
     const triggerCounts: Record<string, number> = {};
     entries.forEach((e) =>
       (e.triggers || []).forEach((t) => {
@@ -678,31 +996,45 @@ export default function TrackPage() {
       .sort((a, b) => b[1] - a[1])
       .slice(0, 4);
 
-    return { avgFog, avgFocus, avgSleep, nudges, topTriggers };
+    return { avgFog, avgFocus, avgSleep, avgBp, nudges, topTriggers };
   }, [entries]);
+
+  const selectedSymptomDetail = useMemo(() => {
+    if (selectedSymptomFilter === "ALL") return null;
+    return (
+      symptomBreakdown.find((s) => s.name === selectedSymptomFilter) || null
+    );
+  }, [selectedSymptomFilter, symptomBreakdown]);
 
   const chartData = useMemo(() => {
     return entries.map((e) => {
-      const phaseObj =
-        HORMONE_PHASES.find((p) => p.label === e.hormonePhase) ||
-        HORMONE_PHASES[0];
+      const phaseObj = HORMONE_PHASES.find((p) => p.label === e.hormonePhase);
+      const symRaw =
+        selectedSymptomFilter !== "ALL"
+          ? e.symptomScores?.[selectedSymptomFilter] ?? 0
+          : null;
       return {
         ...e,
         phaseBand: 10,
-        phaseColor: phaseObj.color,
+        phaseColor: phaseObj ? phaseObj.color : "transparent",
         reactionScaled: e.reactionMs
           ? Number((e.reactionMs / 100).toFixed(2))
           : null,
+        symptomScaled: symRaw !== null ? symRaw * 2 : null,
+        symptomRaw: symRaw,
       };
     });
-  }, [entries]);
+  }, [entries, selectedSymptomFilter]);
 
   const slidersComplete =
     brainFog !== null && focus !== null && energy !== null && mood !== null;
 
+  const hasLipidValues =
+    lipids.ldl || lipids.hdl || lipids.triglycerides || lipids.hba1c;
+
   return (
     <div className="min-h-screen bg-[#F7F5F0] text-[#1C1F1D]">
-      {/* Top Bar (Hidden when printing) */}
+      {/* Top Bar */}
       <header className="print:hidden border-b border-[#E3DDD2] bg-[#F7F5F0]/90 backdrop-blur-sm sticky top-0 z-20">
         <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5">
@@ -736,7 +1068,7 @@ export default function TrackPage() {
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-[#E3DDD2] pb-6">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#2F5D50]">
-              Daily Journal &amp; Cognitive Check
+              Daily Journal, Perimenopause &amp; Cardiometabolic Log
             </p>
             <h1 className="font-serif text-3xl sm:text-4xl font-normal mt-1">
               Log today&apos;s signals
@@ -770,7 +1102,19 @@ export default function TrackPage() {
           </div>
         </div>
 
-        {/* Encrypted Local Backup & Restore Drawer */}
+        {/* Clinical Urgency Notice */}
+        <div className="bg-white/85 border border-[#E3DDD2] rounded-2xl px-5 py-3.5 flex items-start gap-3 text-xs text-[#4F5551]">
+          <HeartPulse className="w-4 h-4 text-[#A84A32] shrink-0 mt-0.5" />
+          <p className="leading-relaxed">
+            <strong>Cardiometabolic note:</strong> PMOS and perimenopause can
+            increase insulin resistance, blood pressure, and LDL cholesterol
+            risk. Track recurring trends here for your physician—seek urgent
+            medical care immediately for chest pain, severe shortness of breath,
+            or fainting.
+          </p>
+        </div>
+
+        {/* Encrypted Local Backup Drawer */}
         {backupOpen && (
           <div className="bg-white/95 border border-[#D5CEC2] rounded-2xl p-5 space-y-4">
             <div>
@@ -778,7 +1122,7 @@ export default function TrackPage() {
                 <Lock className="w-4 h-4 text-[#2F5D50]" /> AES-256 Encrypted Local Backup &amp; Restore
               </h2>
               <p className="text-xs text-[#5A605C]">
-                Your history never touches a server. Encrypt it with a passphrase to export or merge onto another browser.
+                Your history never touches a server. Use at least 8 characters for your passphrase.
               </p>
             </div>
 
@@ -787,7 +1131,7 @@ export default function TrackPage() {
                 type="password"
                 value={backupPass}
                 onChange={(e) => setBackupPass(e.target.value)}
-                placeholder="Enter backup passphrase..."
+                placeholder="Passphrase (min 8 characters)..."
                 className="flex-1 rounded-xl bg-[#F7F5F0] border border-[#D8D0C3] px-3.5 py-2 text-xs font-medium"
               />
               <button
@@ -822,7 +1166,7 @@ export default function TrackPage() {
           </div>
         )}
 
-        {/* XP & Consecutive-Day Streak Bar */}
+        {/* XP & Streak Bar */}
         <GamificationBar
           xp={xp}
           streak={streak}
@@ -831,30 +1175,42 @@ export default function TrackPage() {
           bestStroopScore={bestStroopScore}
         />
 
-        {/* Daily Check-In Form + Cognitive Checks */}
+        {/* Daily Check-In Form + Cognitive & Lipid Panel */}
         <div className="grid lg:grid-cols-12 gap-8 items-start">
-          {/* Left 7 Cols: 30-Sec Logger */}
+          {/* Left 7 Cols: Daily Check-In */}
           <form
             onSubmit={handleSaveEntry}
             className="lg:col-span-7 bg-white/85 border border-[#E3DDD2] rounded-2xl p-6 sm:p-7 space-y-6"
           >
             <div className="flex items-center justify-between border-b border-[#EFECE6] pb-4">
               <h2 className="font-serif text-xl font-medium">
-                30-Second Check-In
+                Daily Signal &amp; Symptom Check-In
               </h2>
               <input
                 type="date"
+                aria-label="Entry Date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
                 className="text-xs font-semibold bg-[#F7F5F0] border border-[#D8D0C3] rounded-lg px-3 py-1.5 text-[#1C1F1D]"
               />
             </div>
 
-            {/* Hormone Phase Selector */}
+            {/* Hormone / Perimenopause State Selector */}
             <div className="space-y-2">
-              <label className="block text-xs font-semibold">
-                Cycle / Hormone State
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-semibold">
+                  Cycle / Perimenopause State (optional)
+                </label>
+                {hormonePhase && (
+                  <button
+                    type="button"
+                    onClick={() => setHormonePhase(null)}
+                    className="text-[11px] text-[#6E7570] hover:text-[#1C1F1D] cursor-pointer"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {HORMONE_PHASES.map((p) => {
                   const active = hormonePhase === p.label;
@@ -862,7 +1218,8 @@ export default function TrackPage() {
                     <button
                       key={p.label}
                       type="button"
-                      onClick={() => setHormonePhase(p.label)}
+                      aria-pressed={active}
+                      onClick={() => setHormonePhase(active ? null : p.label)}
                       className={`p-2 rounded-xl border text-left transition cursor-pointer flex items-center gap-2 ${
                         active
                           ? "bg-[#1C1F1D] text-[#F7F5F0] border-[#1C1F1D]"
@@ -882,16 +1239,17 @@ export default function TrackPage() {
               </div>
             </div>
 
-            {/* Sliders (Start unrated so users actively select values) */}
+            {/* Sliders */}
             <div className="grid sm:grid-cols-2 gap-5">
               <div>
                 <div className="flex justify-between text-xs font-semibold mb-1.5">
-                  <span>Brain Fog (1–10)</span>
+                  <label htmlFor="slider-fog">Brain Fog (1–10)</label>
                   <span className="text-[#2F5D50]">
                     {brainFog !== null ? `${brainFog}/10` : "Tap to rate"}
                   </span>
                 </div>
                 <input
+                  id="slider-fog"
                   type="range"
                   min={1}
                   max={10}
@@ -906,12 +1264,13 @@ export default function TrackPage() {
 
               <div>
                 <div className="flex justify-between text-xs font-semibold mb-1.5">
-                  <span>Mental Focus (1–10)</span>
+                  <label htmlFor="slider-focus">Mental Focus (1–10)</label>
                   <span className="text-[#2F5D50]">
                     {focus !== null ? `${focus}/10` : "Tap to rate"}
                   </span>
                 </div>
                 <input
+                  id="slider-focus"
                   type="range"
                   min={1}
                   max={10}
@@ -926,12 +1285,13 @@ export default function TrackPage() {
 
               <div>
                 <div className="flex justify-between text-xs font-semibold mb-1.5">
-                  <span>Physical Energy (1–10)</span>
+                  <label htmlFor="slider-energy">Physical Energy (1–10)</label>
                   <span className="text-[#2F5D50]">
                     {energy !== null ? `${energy}/10` : "Tap to rate"}
                   </span>
                 </div>
                 <input
+                  id="slider-energy"
                   type="range"
                   min={1}
                   max={10}
@@ -946,12 +1306,13 @@ export default function TrackPage() {
 
               <div>
                 <div className="flex justify-between text-xs font-semibold mb-1.5">
-                  <span>Mood Stability (1–10)</span>
+                  <label htmlFor="slider-mood">Mood Stability (1–10)</label>
                   <span className="text-[#2F5D50]">
                     {mood !== null ? `${mood}/10` : "Tap to rate"}
                   </span>
                 </div>
                 <input
+                  id="slider-mood"
                   type="range"
                   min={1}
                   max={10}
@@ -965,38 +1326,209 @@ export default function TrackPage() {
               </div>
             </div>
 
-            {/* Sleep & Cycle Day (Empty placeholders instead of fabricated defaults) */}
-            <div className="grid grid-cols-2 gap-4">
+            {/* Sleep, Cycle Day & Optional BP / Resting Heart Rate */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div>
-                <label className="block text-xs font-semibold mb-1.5">
-                  Sleep Hours
+                <label htmlFor="input-sleep" className="block text-[11px] font-semibold mb-1">
+                  Sleep Hours *
                 </label>
                 <input
+                  id="input-sleep"
                   type="number"
                   step={0.5}
                   min={0}
                   max={20}
                   value={sleepHours}
                   onChange={(e) => setSleepHours(e.target.value)}
-                  placeholder="e.g. 7.5"
-                  className="w-full rounded-xl bg-[#F7F5F0] border border-[#D8D0C3] px-3.5 py-2 text-sm font-medium"
+                  placeholder="7.5"
+                  className="w-full rounded-xl bg-[#F7F5F0] border border-[#D8D0C3] px-3 py-2 text-xs font-medium"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold mb-1.5">
-                  Cycle Day (optional)
+                <label htmlFor="input-cycle" className="block text-[11px] font-semibold mb-1">
+                  Cycle Day
                 </label>
                 <input
+                  id="input-cycle"
                   type="text"
                   value={cycleDay}
                   onChange={(e) => setCycleDay(e.target.value)}
-                  placeholder="e.g. 14 or N/A"
-                  className="w-full rounded-xl bg-[#F7F5F0] border border-[#D8D0C3] px-3.5 py-2 text-sm font-medium"
+                  placeholder="14 or N/A"
+                  className="w-full rounded-xl bg-[#F7F5F0] border border-[#D8D0C3] px-3 py-2 text-xs font-medium"
+                />
+              </div>
+              <div>
+                <label htmlFor="input-bp" className="block text-[11px] font-semibold mb-1">
+                  BP (Sys / Dia)
+                </label>
+                <div className="flex items-center gap-1">
+                  <input
+                    id="input-bp"
+                    type="number"
+                    placeholder="120"
+                    value={bpSystolic}
+                    onChange={(e) => setBpSystolic(e.target.value)}
+                    className="w-1/2 rounded-xl bg-[#F7F5F0] border border-[#D8D0C3] px-2 py-2 text-xs font-medium"
+                  />
+                  <input
+                    aria-label="Diastolic BP"
+                    type="number"
+                    placeholder="80"
+                    value={bpDiastolic}
+                    onChange={(e) => setBpDiastolic(e.target.value)}
+                    className="w-1/2 rounded-xl bg-[#F7F5F0] border border-[#D8D0C3] px-2 py-2 text-xs font-medium"
+                  />
+                </div>
+              </div>
+              <div>
+                <label htmlFor="input-hr" className="block text-[11px] font-semibold mb-1">
+                  Resting HR
+                </label>
+                <input
+                  id="input-hr"
+                  type="number"
+                  placeholder="72 bpm"
+                  value={restingHr}
+                  onChange={(e) => setRestingHr(e.target.value)}
+                  className="w-full rounded-xl bg-[#F7F5F0] border border-[#D8D0C3] px-3 py-2 text-xs font-medium"
                 />
               </div>
             </div>
 
-            {/* 1-Tap Trigger & Habit Quick-Tags */}
+            {/* Categorized Individual Symptom Tracking with 1–5 Severity */}
+            <div className="space-y-3 border-t border-[#EFECE6] pt-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <label className="block text-xs font-semibold">
+                  Individual Symptoms (tap to log &amp; rate 1–5)
+                </label>
+                <span className="text-[11px] text-[#6E7570]">
+                  {Object.keys(symptomScores).length} active
+                </span>
+              </div>
+
+              {/* Category Filter Tabs */}
+              <div className="flex flex-wrap gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setActiveCategory("ALL")}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition cursor-pointer ${
+                    activeCategory === "ALL"
+                      ? "bg-[#1C1F1D] text-[#F7F5F0]"
+                      : "bg-[#EFECE6] text-[#5A605C] hover:text-[#1C1F1D]"
+                  }`}
+                >
+                  All (
+                  {SYMPTOM_CATEGORIES.flatMap((c) => c.items).length +
+                    customSymptoms.length}
+                  )
+                </button>
+                {SYMPTOM_CATEGORIES.map((cat) => (
+                  <button
+                    key={cat.category}
+                    type="button"
+                    onClick={() => setActiveCategory(cat.category)}
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition cursor-pointer ${
+                      activeCategory === cat.category
+                        ? "bg-[#1C1F1D] text-[#F7F5F0]"
+                        : "bg-[#EFECE6] text-[#5A605C] hover:text-[#1C1F1D]"
+                    }`}
+                  >
+                    {cat.category}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {visibleSymptoms.map((sym) => {
+                  const active = sym in symptomScores;
+                  return (
+                    <button
+                      key={sym}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => toggleSymptom(sym)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium border transition cursor-pointer ${
+                        active
+                          ? "bg-[#2F5D50] text-[#F7F5F0] border-[#2F5D50]"
+                          : "bg-[#F7F5F0] text-[#4F5551] border-[#D8D0C3] hover:border-[#1C1F1D]"
+                      }`}
+                    >
+                      {sym}
+                      {active ? ` · ${symptomScores[sym]}/5` : ""}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Active Symptom Individual Severity Controls */}
+              {Object.keys(symptomScores).length > 0 && (
+                <div className="space-y-2 pt-1">
+                  {Object.entries(symptomScores).map(([sym, sev]) => (
+                    <div
+                      key={sym}
+                      className="flex flex-wrap items-center justify-between gap-2 px-3.5 py-2 rounded-xl bg-[#F7F5F0] border border-[#E3DDD2]"
+                    >
+                      <span className="text-xs font-semibold text-[#1C1F1D]">
+                        {sym}
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] uppercase tracking-wider text-[#6E7570] mr-1">
+                          Severity:
+                        </span>
+                        {[1, 2, 3, 4, 5].map((lvl) => (
+                          <button
+                            key={lvl}
+                            type="button"
+                            onClick={() => setSymptomSeverity(sym, lvl)}
+                            className={`w-6 h-6 rounded-full text-xs font-semibold transition cursor-pointer ${
+                              sev === lvl
+                                ? "bg-[#1C1F1D] text-[#F7F5F0]"
+                                : "bg-white border border-[#D8D0C3] text-[#5A605C] hover:border-[#1C1F1D]"
+                            }`}
+                          >
+                            {lvl}
+                          </button>
+                        ))}
+                        <button
+                          type="button"
+                          aria-label={`Remove ${sym}`}
+                          onClick={() => toggleSymptom(sym)}
+                          className="ml-1 text-[#7A7F7B] hover:text-[#A84A32] cursor-pointer"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Add Custom Symptom */}
+              <div className="flex items-center gap-2 pt-1">
+                <input
+                  type="text"
+                  value={newSymptomText}
+                  onChange={(e) => setNewSymptomText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleAddCustomSymptom();
+                    }
+                  }}
+                  placeholder="Add custom symptom (e.g., Chest Tightness, Mood Swings)..."
+                  className="flex-1 rounded-xl bg-[#F7F5F0] border border-[#D8D0C3] px-3 py-1.5 text-xs"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddCustomSymptom}
+                  className="px-3 py-1.5 rounded-xl bg-white border border-[#D8D0C3] hover:border-[#1C1F1D] text-xs font-semibold transition cursor-pointer"
+                >
+                  + Add
+                </button>
+              </div>
+            </div>
+
+            {/* 1-Tap Triggers */}
             <div className="space-y-2">
               <label className="block text-xs font-semibold">
                 1-Tap Triggers &amp; Habits
@@ -1008,7 +1540,8 @@ export default function TrackPage() {
                     <button
                       key={trig}
                       type="button"
-                      onClick={() => toggleItem(trig, setTriggers)}
+                      aria-pressed={active}
+                      onClick={() => toggleTrigger(trig)}
                       className={`px-3 py-1.5 rounded-full text-xs font-medium border transition cursor-pointer ${
                         active
                           ? "bg-[#1C1F1D] text-[#F7F5F0] border-[#1C1F1D]"
@@ -1022,42 +1555,17 @@ export default function TrackPage() {
               </div>
             </div>
 
-            {/* Symptom Tags */}
-            <div className="space-y-2">
-              <label className="block text-xs font-semibold">
-                Metabolic &amp; Cognitive Signals
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {SYMPTOM_OPTIONS.map((sym) => {
-                  const active = symptoms.includes(sym);
-                  return (
-                    <button
-                      key={sym}
-                      type="button"
-                      onClick={() => toggleItem(sym, setSymptoms)}
-                      className={`px-3 py-1.5 rounded-full text-xs font-medium border transition cursor-pointer ${
-                        active
-                          ? "bg-[#2F5D50] text-[#F7F5F0] border-[#2F5D50]"
-                          : "bg-[#F7F5F0] text-[#4F5551] border-[#D8D0C3] hover:border-[#1C1F1D]"
-                      }`}
-                    >
-                      {sym}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
             {/* Notes */}
             <div>
-              <label className="block text-xs font-semibold mb-1.5">
+              <label htmlFor="input-notes" className="block text-xs font-semibold mb-1.5">
                 Field Notes (optional)
               </label>
               <textarea
+                id="input-notes"
                 rows={2}
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="Meals, stress, workouts, or context for your doctor..."
+                placeholder="Meals, medications, stress, or context for your doctor..."
                 className="w-full rounded-xl bg-[#F7F5F0] border border-[#D8D0C3] px-3.5 py-2 text-sm"
               />
             </div>
@@ -1088,7 +1596,7 @@ export default function TrackPage() {
             </div>
           </form>
 
-          {/* Right 5 Cols: Brain Gym with 14-Day Baseline Calibration */}
+          {/* Right 5 Cols: Brain Gym + Latest Lipid / Metabolic Snapshot */}
           <div className="lg:col-span-5 space-y-6">
             <CognitiveMiniTest
               bestMs={bestReactionMs}
@@ -1101,23 +1609,125 @@ export default function TrackPage() {
               baselineScore={baselines.baselineStroop}
               onComplete={(sc) => recordCognitiveScore("stroop", sc)}
             />
+
+            <div className="bg-white/85 border border-[#E3DDD2] rounded-2xl p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <HeartPulse className="w-4 h-4 text-[#2F5D50]" />
+                  <h3 className="font-serif text-lg font-medium">
+                    Latest Lipid &amp; Glycemic Labs
+                  </h3>
+                </div>
+                <span className="text-[11px] text-[#6E7570]">Doctor Brief</span>
+              </div>
+              <p className="text-xs text-[#5A605C] leading-relaxed">
+                Record recent bloodwork (mg/dL or %) so perimenopause cholesterol
+                and glycemic shifts print directly on your clinical summary.
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-semibold mb-1">
+                    LDL Cholesterol
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 135 mg/dL"
+                    value={lipids.ldl}
+                    onChange={(e) =>
+                      setLipids((p) => ({ ...p, ldl: e.target.value }))
+                    }
+                    className="w-full rounded-xl bg-[#F7F5F0] border border-[#D8D0C3] px-3 py-1.5 text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold mb-1">
+                    HDL Cholesterol
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 48 mg/dL"
+                    value={lipids.hdl}
+                    onChange={(e) =>
+                      setLipids((p) => ({ ...p, hdl: e.target.value }))
+                    }
+                    className="w-full rounded-xl bg-[#F7F5F0] border border-[#D8D0C3] px-3 py-1.5 text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold mb-1">
+                    Triglycerides
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 165 mg/dL"
+                    value={lipids.triglycerides}
+                    onChange={(e) =>
+                      setLipids((p) => ({ ...p, triglycerides: e.target.value }))
+                    }
+                    className="w-full rounded-xl bg-[#F7F5F0] border border-[#D8D0C3] px-3 py-1.5 text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold mb-1">
+                    HbA1c / Lab Date
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 5.8% (Nov 2026)"
+                    value={lipids.hba1c}
+                    onChange={(e) =>
+                      setLipids((p) => ({ ...p, hba1c: e.target.value }))
+                    }
+                    className="w-full rounded-xl bg-[#F7F5F0] border border-[#D8D0C3] px-3 py-1.5 text-xs"
+                  />
+                </div>
+              </div>
+              <div className="flex items-center justify-between pt-1">
+                <button
+                  type="button"
+                  onClick={handleSaveLipids}
+                  className="px-4 py-1.5 rounded-full bg-[#1C1F1D] hover:bg-[#2F5D50] text-[#F7F5F0] text-xs font-semibold transition cursor-pointer"
+                >
+                  Save Lab Snapshot
+                </button>
+                {lipidsSavedMsg && (
+                  <span className="text-xs font-semibold text-[#2F5D50]">
+                    Added to Doctor Brief
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Analytics, Metabolic Nudges & Cycle Overlay Chart */}
+        {/* Analytics, Individual Symptom Lens & Chart */}
         {analytics && (
           <section className="bg-white/85 border border-[#E3DDD2] rounded-2xl p-6 sm:p-8 space-y-6">
             <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#EFECE6] pb-4">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-[#2F5D50]">
-                  On-Device Pattern &amp; Phase Engine
+                  On-Device Pattern &amp; Individual Symptom Engine
                 </p>
                 <h2 className="font-serif text-2xl font-normal">
-                  Hormone Overlay &amp; Metabolic Correlations ({entries.length} entries)
+                  Symptom Trends &amp; Hormone Correlations ({entries.length} entries)
                 </h2>
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
+                <select
+                  aria-label="Analyze Individual Symptom"
+                  value={selectedSymptomFilter}
+                  onChange={(e) => setSelectedSymptomFilter(e.target.value)}
+                  className="px-3 py-1.5 rounded-full text-xs font-semibold bg-[#F7F5F0] border border-[#D8D0C3] text-[#1C1F1D] cursor-pointer"
+                >
+                  <option value="ALL">Symptom Lens: Overview</option>
+                  {symptomBreakdown.map((s) => (
+                    <option key={s.name} value={s.name}>
+                      Isolate: {s.name} ({s.daysLogged}d)
+                    </option>
+                  ))}
+                </select>
+
                 <button
                   type="button"
                   onClick={() => setShowPhaseOverlay((v) => !v)}
@@ -1143,7 +1753,44 @@ export default function TrackPage() {
               </div>
             </div>
 
-            {/* Sample-Size Aware Nudges */}
+            {selectedSymptomDetail && (
+              <div className="p-4 rounded-xl bg-[#2F5D50]/10 border border-[#2F5D50]/30 grid sm:grid-cols-4 gap-4">
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-[#2F5D50]">
+                    Isolated Symptom
+                  </p>
+                  <p className="font-serif text-lg font-medium text-[#1C1F1D]">
+                    {selectedSymptomDetail.name}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-[#5A605C]">
+                    Frequency &amp; Avg Severity
+                  </p>
+                  <p className="font-serif text-base font-medium text-[#1C1F1D]">
+                    {selectedSymptomDetail.daysLogged}/{entries.length} days ·{" "}
+                    {selectedSymptomDetail.avgSeverity}/5
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-[#5A605C]">
+                    Highest Severity Phase
+                  </p>
+                  <p className="font-serif text-sm font-medium text-[#1C1F1D]">
+                    {selectedSymptomDetail.peakPhase}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-[#5A605C]">
+                    Top Co-Occurring Trigger
+                  </p>
+                  <p className="font-serif text-sm font-medium text-[#1C1F1D]">
+                    {selectedSymptomDetail.topTrigger}
+                  </p>
+                </div>
+              </div>
+            )}
+
             {analytics.nudges.length > 0 ? (
               <div className="grid md:grid-cols-2 gap-3">
                 {analytics.nudges.map((nudge, idx) => (
@@ -1160,11 +1807,10 @@ export default function TrackPage() {
               </div>
             ) : (
               <p className="text-xs text-[#5A605C] bg-[#F7F5F0] border border-[#E3DDD2] rounded-xl px-4 py-3">
-                Log at least 5–6 consecutive days (with at least 3 days per sleep/meal comparison bucket) to unlock statistical pattern nudges.
+                Pattern comparisons appear once at least 3 days exist in both comparison buckets (e.g., 3 nights &lt;6.5h sleep and 3 nights &ge;6.5h sleep).
               </p>
             )}
 
-            {/* Phase Legend */}
             {showPhaseOverlay && (
               <div className="flex flex-wrap items-center gap-4 text-[11px] font-semibold text-[#5A605C]">
                 <span>Hormone Phase Bands:</span>
@@ -1180,7 +1826,6 @@ export default function TrackPage() {
               </div>
             )}
 
-            {/* Composed Chart */}
             <div className="h-72 w-full pt-1">
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={chartData}>
@@ -1203,15 +1848,26 @@ export default function TrackPage() {
                     formatter={(
                       value: unknown,
                       name: unknown,
-                      props: { payload?: DailyEntry }
+                      props: {
+                        payload?: DailyEntry & { symptomRaw?: number | null };
+                      }
                     ) => {
                       if (name === "Hormone Phase") {
-                        return [props?.payload?.hormonePhase || "—", "Phase"];
+                        return [
+                          props?.payload?.hormonePhase || "Unspecified",
+                          "Phase",
+                        ];
                       }
                       if (name === "Reaction (x100ms)") {
                         return [
                           `${Math.round(Number(value) * 100)}ms`,
                           "Reaction Speed",
+                        ];
+                      }
+                      if (String(name).startsWith("Symptom:")) {
+                        return [
+                          `${props?.payload?.symptomRaw ?? 0}/5`,
+                          String(name),
                         ];
                       }
                       return [`${value}/10`, String(name)];
@@ -1249,6 +1905,16 @@ export default function TrackPage() {
                     strokeWidth={2.25}
                     dot={{ r: 3.5 }}
                   />
+                  {selectedSymptomFilter !== "ALL" && (
+                    <Line
+                      type="monotone"
+                      dataKey="symptomScaled"
+                      name={`Symptom: ${selectedSymptomFilter}`}
+                      stroke="#B07D2B"
+                      strokeWidth={2.75}
+                      dot={{ r: 4 }}
+                    />
+                  )}
                   {showReactionOverlay && (
                     <Line
                       type="monotone"
@@ -1264,16 +1930,70 @@ export default function TrackPage() {
                 </ComposedChart>
               </ResponsiveContainer>
             </div>
+
+            {symptomBreakdown.length > 0 && (
+              <div className="border-t border-[#EFECE6] pt-5 space-y-3">
+                <p className="text-xs font-semibold uppercase tracking-wider text-[#5A605C]">
+                  Individual Symptom Breakdown (click any card to isolate on chart)
+                </p>
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {symptomBreakdown.map((item) => {
+                    const isSelected = selectedSymptomFilter === item.name;
+                    return (
+                      <button
+                        key={item.name}
+                        type="button"
+                        onClick={() =>
+                          setSelectedSymptomFilter(isSelected ? "ALL" : item.name)
+                        }
+                        className={`text-left p-3.5 rounded-xl border transition cursor-pointer space-y-1 ${
+                          isSelected
+                            ? "bg-[#1C1F1D] text-[#F7F5F0] border-[#1C1F1D]"
+                            : "bg-[#F7F5F0] text-[#1C1F1D] border-[#E3DDD2] hover:border-[#1C1F1D]"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-serif text-sm font-medium">
+                            {item.name}
+                          </span>
+                          <span
+                            className={`text-xs font-semibold ${
+                              isSelected ? "text-[#A7D7C5]" : "text-[#2F5D50]"
+                            }`}
+                          >
+                            Avg {item.avgSeverity}/5
+                          </span>
+                        </div>
+                        <p
+                          className={`text-[11px] ${
+                            isSelected ? "text-[#D5CEC2]" : "text-[#5A605C]"
+                          }`}
+                        >
+                          Logged {item.daysLogged}d · Peak: {item.peakPhase}
+                        </p>
+                        <p
+                          className={`text-[11px] ${
+                            isSelected ? "text-[#D5CEC2]" : "text-[#5A605C]"
+                          }`}
+                        >
+                          Top trigger: {item.topTrigger}
+                        </p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </section>
         )}
       </main>
 
       {/* PRINT-ONLY 1-PAGE CLINICAL DOCTOR BRIEF */}
-      <section className="hidden print:block p-8 bg-white text-black space-y-5">
-        <div className="border-b-2 border-black pb-3 flex justify-between items-end">
+      <section className="hidden print:block p-8 bg-white text-black space-y-4">
+        <div className="border-b-2 border-black pb-2.5 flex justify-between items-end">
           <div>
             <h1 className="font-serif text-2xl font-bold">
-              Clarity — PMOS Symptom, Trigger &amp; Cognitive Brief
+              Clarity — PMOS Symptom, Cardiometabolic &amp; Cognitive Brief
             </h1>
             <p className="text-xs text-gray-600">
               Self-tracked patient log summary · Generated {printDate}
@@ -1285,30 +2005,46 @@ export default function TrackPage() {
         </div>
 
         {analytics && (
-          <div className="grid grid-cols-4 gap-3 border border-gray-300 p-3.5 rounded">
+          <div className="grid grid-cols-5 gap-2.5 border border-gray-300 p-3 rounded">
             <div>
               <p className="text-[10px] uppercase text-gray-500">Avg Brain Fog</p>
-              <p className="text-base font-bold">{analytics.avgFog} / 10</p>
+              <p className="text-sm font-bold">{analytics.avgFog} / 10</p>
             </div>
             <div>
               <p className="text-[10px] uppercase text-gray-500">Avg Focus</p>
-              <p className="text-base font-bold">{analytics.avgFocus} / 10</p>
+              <p className="text-sm font-bold">{analytics.avgFocus} / 10</p>
             </div>
             <div>
               <p className="text-[10px] uppercase text-gray-500">Avg Sleep</p>
-              <p className="text-base font-bold">{analytics.avgSleep} hrs</p>
+              <p className="text-sm font-bold">{analytics.avgSleep} hrs</p>
             </div>
             <div>
-              <p className="text-[10px] uppercase text-gray-500">14d Reaction Base</p>
-              <p className="text-base font-bold">
+              <p className="text-[10px] uppercase text-gray-500">Avg BP</p>
+              <p className="text-sm font-bold">{analytics.avgBp || "—"}</p>
+            </div>
+            <div>
+              <p className="text-[10px] uppercase text-gray-500">14d Reaction</p>
+              <p className="text-sm font-bold">
                 {baselines.baselineMs ? `${baselines.baselineMs}ms` : "—"}
               </p>
             </div>
           </div>
         )}
 
-        {analytics && analytics.topTriggers.length > 0 && (
-          <div className="text-xs border border-gray-300 p-3 rounded">
+        {hasLipidValues && (
+          <div className="text-xs border border-gray-300 p-2.5 rounded flex flex-wrap gap-4">
+            <span className="font-bold uppercase tracking-wider">
+              Patient-Reported Lipids / Glycemic:
+            </span>
+            {lipids.ldl && <span>LDL: {lipids.ldl}</span>}
+            {lipids.hdl && <span>HDL: {lipids.hdl}</span>}
+            {lipids.triglycerides && <span>TG: {lipids.triglycerides}</span>}
+            {lipids.hba1c && <span>HbA1c: {lipids.hba1c}</span>}
+          </div>
+        )}
+
+        {analytics && analytics.topTriggers && analytics.topTriggers.length > 0 && (
+          <div className="text-xs border border-gray-300 p-2.5 rounded">
             <span className="font-bold uppercase tracking-wider mr-2">
               Recurring Triggers Logged:
             </span>
@@ -1318,9 +2054,43 @@ export default function TrackPage() {
           </div>
         )}
 
+        {symptomBreakdown.length > 0 && (
+          <div>
+            <h2 className="font-bold text-xs uppercase tracking-wider mb-1.5">
+              Individual Symptom Analysis
+            </h2>
+            <table className="w-full text-xs border-collapse border border-gray-300">
+              <thead>
+                <tr className="bg-gray-100">
+                  <th className="border border-gray-300 p-1.5 text-left">Symptom</th>
+                  <th className="border border-gray-300 p-1.5">Frequency</th>
+                  <th className="border border-gray-300 p-1.5">Avg Severity</th>
+                  <th className="border border-gray-300 p-1.5 text-left">Peak Hormone Phase</th>
+                  <th className="border border-gray-300 p-1.5 text-left">Top Co-Occurring Trigger</th>
+                </tr>
+              </thead>
+              <tbody>
+                {symptomBreakdown.slice(0, 8).map((s) => (
+                  <tr key={s.name}>
+                    <td className="border border-gray-300 p-1.5 font-semibold">{s.name}</td>
+                    <td className="border border-gray-300 p-1.5 text-center">
+                      {s.daysLogged}/{entries.length}d
+                    </td>
+                    <td className="border border-gray-300 p-1.5 text-center">
+                      {s.avgSeverity}/5
+                    </td>
+                    <td className="border border-gray-300 p-1.5">{s.peakPhase}</td>
+                    <td className="border border-gray-300 p-1.5">{s.topTrigger}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
         <div>
-          <h2 className="font-bold text-xs uppercase tracking-wider mb-2">
-            Recent Entries &amp; Hormone Context
+          <h2 className="font-bold text-xs uppercase tracking-wider mb-1.5">
+            Recent Daily Logs
           </h2>
           <table className="w-full text-xs border-collapse border border-gray-300">
             <thead>
@@ -1329,44 +2099,58 @@ export default function TrackPage() {
                 <th className="border border-gray-300 p-1.5 text-left">Phase</th>
                 <th className="border border-gray-300 p-1.5">Fog</th>
                 <th className="border border-gray-300 p-1.5">Focus</th>
-                <th className="border border-gray-300 p-1.5">Sleep</th>
-                <th className="border border-gray-300 p-1.5 text-left">Triggers &amp; Signals</th>
+                <th className="border border-gray-300 p-1.5">BP</th>
+                <th className="border border-gray-300 p-1.5 text-left">Symptoms (1–5) &amp; Triggers</th>
               </tr>
             </thead>
             <tbody>
-              {entries.slice(-7).map((e) => (
-                <tr key={e.id}>
-                  <td className="border border-gray-300 p-1.5">{e.date}</td>
-                  <td className="border border-gray-300 p-1.5">{e.hormonePhase}</td>
-                  <td className="border border-gray-300 p-1.5 text-center">
-                    {e.brainFog}/10
-                  </td>
-                  <td className="border border-gray-300 p-1.5 text-center">
-                    {e.focus}/10
-                  </td>
-                  <td className="border border-gray-300 p-1.5 text-center">
-                    {e.sleepHours}h
-                  </td>
-                  <td className="border border-gray-300 p-1.5">
-                    {[...(e.triggers || []), ...e.symptoms].join(", ") || "—"}
-                  </td>
-                </tr>
-              ))}
+              {entries.slice(-7).map((e) => {
+                const symFormatted = Object.entries(e.symptomScores || {}).map(
+                  ([k, v]) => `${k} (${v}/5)`
+                );
+                const bpStr =
+                  e.bpSystolic && e.bpDiastolic
+                    ? `${e.bpSystolic}/${e.bpDiastolic}`
+                    : "—";
+                return (
+                  <tr key={e.id}>
+                    <td className="border border-gray-300 p-1.5">{e.date}</td>
+                    <td className="border border-gray-300 p-1.5">
+                      {e.hormonePhase || "—"}
+                    </td>
+                    <td className="border border-gray-300 p-1.5 text-center">
+                      {e.brainFog}/10
+                    </td>
+                    <td className="border border-gray-300 p-1.5 text-center">
+                      {e.focus}/10
+                    </td>
+                    <td className="border border-gray-300 p-1.5 text-center">
+                      {bpStr}
+                    </td>
+                    <td className="border border-gray-300 p-1.5">
+                      {[...symFormatted, ...(e.triggers || [])].join(", ") || "—"}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
 
-        <div className="border-t border-gray-300 pt-3 text-xs space-y-1">
+        <div className="border-t border-gray-300 pt-2.5 text-xs space-y-1">
           <p className="font-bold">
-            Suggested Metabolic &amp; Endocrine Panels to Discuss:
+            Cardiometabolic &amp; Endocrine Panels to Discuss With Your Physician:
           </p>
           <p>
-            Fasting Insulin, HbA1c, Fasting Glucose, Lipid Panel, TSH / Free T4,
-            Total &amp; Free Testosterone, DHEA-S, Vitamin B12 &amp; Vitamin D.
+            Full Lipid Profile (Total Cholesterol, LDL-C, HDL-C, Triglycerides,
+            ApoB), Fasting Insulin, HbA1c, Fasting Glucose, hs-CRP, Blood
+            Pressure review, TSH / Free T4, Total &amp; Free Testosterone,
+            DHEA-S, Vitamin B12 &amp; Vitamin D.
           </p>
-          <p className="text-[11px] text-gray-500 pt-1">
+          <p className="text-[11px] text-gray-500 pt-0.5">
             Disclaimer: Educational self-tracking summary only; not a medical
-            diagnosis.
+            diagnosis. Seek prompt medical care for acute chest pain,
+            shortness of breath, or syncope.
           </p>
         </div>
       </section>
