@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
-import { format, subDays } from "date-fns";
+import { format, subDays, parseISO, differenceInCalendarDays } from "date-fns";
 import {
   ResponsiveContainer,
   ComposedChart,
@@ -25,6 +25,7 @@ import {
   Lock,
   Activity,
   Layers,
+  AlertCircle,
 } from "lucide-react";
 import GamificationBar from "@/components/GamificationBar";
 import CognitiveMiniTest from "@/components/CognitiveMiniTest";
@@ -84,7 +85,7 @@ const TRIGGER_OPTIONS = [
 const STORAGE_KEY = "clarity_pmos_entries_v6";
 const STATS_KEY = "clarity_pmos_stats_v6";
 
-// --- Web Crypto AES-GCM Helpers (Zero external libraries) ---
+// --- Web Crypto AES-GCM Helpers ---
 async function deriveKey(password: string, salt: Uint8Array) {
   const enc = new TextEncoder();
   const keyMaterial = await window.crypto.subtle.importKey(
@@ -148,6 +149,23 @@ async function decryptPayload(rawFileText: string, password: string) {
   return JSON.parse(new TextDecoder().decode(plainBuffer));
 }
 
+function isValidEntry(item: unknown): item is DailyEntry {
+  if (!item || typeof item !== "object") return false;
+  const e = item as Record<string, unknown>;
+  return (
+    typeof e.id === "string" &&
+    typeof e.date === "string" &&
+    /^\d{4}-\d{2}-\d{2}$/.test(e.date) &&
+    typeof e.brainFog === "number" &&
+    e.brainFog >= 1 &&
+    e.brainFog <= 10 &&
+    typeof e.focus === "number" &&
+    e.focus >= 1 &&
+    e.focus <= 10 &&
+    typeof e.sleepHours === "number"
+  );
+}
+
 export default function TrackPage() {
   const [entries, setEntries] = useState<DailyEntry[]>([]);
   const [runs, setRuns] = useState<CognitiveRun[]>([]);
@@ -155,6 +173,7 @@ export default function TrackPage() {
   const [bestReactionMs, setBestReactionMs] = useState<number | null>(null);
   const [bestStroopScore, setBestStroopScore] = useState<number | null>(null);
   const [savedBanner, setSavedBanner] = useState(false);
+  const [formError, setFormError] = useState("");
 
   // Chart Overlays
   const [showPhaseOverlay, setShowPhaseOverlay] = useState(true);
@@ -166,18 +185,18 @@ export default function TrackPage() {
   const [backupStatus, setBackupStatus] = useState("");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Client-hydrated dates (safe for Next.js 16 static prerendering)
+  // Client-hydrated dates
   const [todayIso, setTodayIso] = useState("");
   const [date, setDate] = useState("");
   const [printDate, setPrintDate] = useState("");
 
-  // Form State
-  const [brainFog, setBrainFog] = useState(4);
-  const [focus, setFocus] = useState(7);
-  const [energy, setEnergy] = useState(6);
-  const [mood, setMood] = useState(7);
-  const [sleepHours, setSleepHours] = useState(7.5);
-  const [cycleDay, setCycleDay] = useState("14");
+  // Form State (Unrated nulls prevent accidental junk saves)
+  const [brainFog, setBrainFog] = useState<number | null>(null);
+  const [focus, setFocus] = useState<number | null>(null);
+  const [energy, setEnergy] = useState<number | null>(null);
+  const [mood, setMood] = useState<number | null>(null);
+  const [sleepHours, setSleepHours] = useState<string>("");
+  const [cycleDay, setCycleDay] = useState<string>("");
   const [hormonePhase, setHormonePhase] = useState<HormonePhase>("Follicular");
   const [symptoms, setSymptoms] = useState<string[]>([]);
   const [triggers, setTriggers] = useState<string[]>([]);
@@ -192,14 +211,17 @@ export default function TrackPage() {
 
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) setEntries(JSON.parse(raw));
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) setEntries(parsed.filter(isValidEntry));
+      }
       const rawStats = localStorage.getItem(STATS_KEY);
       if (rawStats) {
         const parsed = JSON.parse(rawStats);
         setXp(parsed.xp || 0);
         setBestReactionMs(parsed.bestReactionMs ?? null);
         setBestStroopScore(parsed.bestStroopScore ?? null);
-        setRuns(parsed.runs || []);
+        setRuns(Array.isArray(parsed.runs) ? parsed.runs : []);
       }
     } catch {
       // ignore storage errors
@@ -244,8 +266,36 @@ export default function TrackPage() {
 
   const handleSaveEntry = (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError("");
+
+    if (
+      brainFog === null ||
+      focus === null ||
+      energy === null ||
+      mood === null
+    ) {
+      setFormError("Please rate all four sliders (Fog, Focus, Energy, Mood) before saving.");
+      return;
+    }
+
+    const parsedSleep = parseFloat(sleepHours);
+    if (isNaN(parsedSleep) || parsedSleep < 0 || parsedSleep > 20) {
+      setFormError("Please enter valid sleep hours (e.g. 7.5).");
+      return;
+    }
+
     const entryDate = date || todayIso || "2026-01-01";
     const existing = entries.find((item) => item.date === entryDate);
+
+    // Attach any mini-test runs taken BEFORE saving this day's entry
+    const sameDayRuns = runs.filter((r) => r.date === entryDate);
+    const latestReaction = [...sameDayRuns]
+      .reverse()
+      .find((r) => typeof r.reactionMs === "number")?.reactionMs;
+    const latestStroop = [...sameDayRuns]
+      .reverse()
+      .find((r) => typeof r.stroopScore === "number")?.stroopScore;
+
     const newEntry: DailyEntry = {
       id: `${entryDate}-${Date.now()}`,
       date: entryDate,
@@ -253,15 +303,16 @@ export default function TrackPage() {
       focus,
       energy,
       mood,
-      sleepHours,
-      cycleDay,
+      sleepHours: parsedSleep,
+      cycleDay: cycleDay.trim() || "N/A",
       hormonePhase,
       symptoms,
       triggers,
       notes,
-      reactionMs: existing?.reactionMs,
-      stroopScore: existing?.stroopScore,
+      reactionMs: latestReaction ?? existing?.reactionMs,
+      stroopScore: latestStroop ?? existing?.stroopScore,
     };
+
     const filtered = entries.filter((item) => item.date !== entryDate);
     persistEntries([...filtered, newEntry]);
     persistStats(xp + 30, bestReactionMs, bestStroopScore, runs);
@@ -283,16 +334,16 @@ export default function TrackPage() {
       },
     ].slice(-60);
 
-    // Attach latest score to that date's entry if present
-    const updatedEntries = entries.map((entry) => {
-      if (entry.date !== targetDate) return entry;
-      return {
-        ...entry,
-        reactionMs: type === "reaction" ? value : entry.reactionMs,
-        stroopScore: type === "stroop" ? value : entry.stroopScore,
-      };
-    });
-    if (updatedEntries.some((e) => e.date === targetDate)) {
+    // Also attach immediately if that date's entry already exists
+    if (entries.some((e) => e.date === targetDate)) {
+      const updatedEntries = entries.map((entry) => {
+        if (entry.date !== targetDate) return entry;
+        return {
+          ...entry,
+          reactionMs: type === "reaction" ? value : entry.reactionMs,
+          stroopScore: type === "stroop" ? value : entry.stroopScore,
+        };
+      });
       persistEntries(updatedEntries);
     }
 
@@ -308,6 +359,13 @@ export default function TrackPage() {
   };
 
   const loadDemoData = () => {
+    if (entries.length > 0) {
+      const ok = window.confirm(
+        `This will replace your ${entries.length} existing logged entry(s) with 7 sample days. Continue?`
+      );
+      if (!ok) return;
+    }
+
     const baseDate = todayIso ? new Date(`${todayIso}T12:00:00`) : new Date();
     const demoPhases: HormonePhase[] = [
       "Follicular",
@@ -338,7 +396,7 @@ export default function TrackPage() {
           ? ["Poor Sleep (<6.5h)", "Late Meal / High Carb", "High Caffeine"]
           : ["Post-Meal Walk", "Med / Supplement"],
         notes: lowSleep
-          ? "Short sleep + late dinner; noticed slower recall after lunch."
+          ? "Short sleep + late dinner; slower recall the next morning."
           : "Protein breakfast and 10-min walk kept afternoon focus steady.",
         reactionMs: lowSleep ? 445 : 335 + idx * 5,
         stroopScore: lowSleep ? 6 : 10,
@@ -354,11 +412,15 @@ export default function TrackPage() {
   };
 
   const clearAllData = () => {
+    const ok = window.confirm(
+      `Permanently delete all ${entries.length} logged entries and cognitive baselines from this browser?`
+    );
+    if (!ok) return;
     persistEntries([]);
     persistStats(0, null, null, []);
   };
 
-  // Encrypted Export / Import Handlers
+  // Encrypted Export / Import Handlers with Schema Validation & Merge Option
   const handleEncryptedExport = async () => {
     if (!backupPass.trim()) {
       setBackupStatus("Enter a passphrase first.");
@@ -395,24 +457,76 @@ export default function TrackPage() {
     try {
       const text = await file.text();
       const restored = await decryptPayload(text, backupPass);
-      if (Array.isArray(restored.entries)) {
-        persistEntries(restored.entries);
+      if (!Array.isArray(restored.entries)) {
+        throw new Error("Backup contains no valid entry array.");
       }
-      if (restored.stats) {
+      const validImported = restored.entries.filter(isValidEntry);
+      if (validImported.length === 0 && restored.entries.length > 0) {
+        throw new Error("Entries failed schema validation.");
+      }
+
+      if (entries.length > 0) {
+        const replaceAll = window.confirm(
+          `Found ${validImported.length} valid entries in backup.\n\nClick OK to REPLACE your current ${entries.length} entries, or Cancel to MERGE by date.`
+        );
+        if (replaceAll) {
+          persistEntries(validImported);
+        } else {
+          const map = new Map<string, DailyEntry>();
+          entries.forEach((item) => map.set(item.date, item));
+          validImported.forEach((item: DailyEntry) => map.set(item.date, item));
+          persistEntries(Array.from(map.values()));
+        }
+      } else {
+        persistEntries(validImported);
+      }
+
+      if (restored.stats && typeof restored.stats === "object") {
+        const importedRuns = Array.isArray(restored.stats.runs)
+          ? restored.stats.runs
+          : [];
         persistStats(
-          restored.stats.xp || 0,
-          restored.stats.bestReactionMs ?? null,
-          restored.stats.bestStroopScore ?? null,
-          restored.stats.runs || []
+          Math.max(xp, Number(restored.stats.xp) || 0),
+          restored.stats.bestReactionMs ?? bestReactionMs,
+          restored.stats.bestStroopScore ?? bestStroopScore,
+          [...runs, ...importedRuns].slice(-60)
         );
       }
-      setBackupStatus(`Restored ${restored.entries?.length || 0} entries.`);
-    } catch {
-      setBackupStatus("Wrong passphrase or corrupted backup file.");
+      setBackupStatus(`Successfully imported ${validImported.length} verified entries.`);
+    } catch (err) {
+      setBackupStatus(
+        err instanceof Error
+          ? err.message
+          : "Wrong passphrase or invalid backup file."
+      );
     } finally {
       e.target.value = "";
     }
   };
+
+  // True Consecutive-Day Streak (anchored to today or yesterday)
+  const streak = useMemo(() => {
+    if (entries.length === 0 || !todayIso) return 0;
+    const uniqueDates = Array.from(new Set(entries.map((e) => e.date))).sort(
+      (a, b) => b.localeCompare(a)
+    );
+    const todayDate = parseISO(todayIso);
+    const latestDate = parseISO(uniqueDates[0]);
+    const gapFromToday = differenceInCalendarDays(todayDate, latestDate);
+    if (gapFromToday > 1) return 0;
+
+    let count = 1;
+    for (let i = 0; i < uniqueDates.length - 1; i++) {
+      const curr = parseISO(uniqueDates[i]);
+      const prev = parseISO(uniqueDates[i + 1]);
+      if (differenceInCalendarDays(curr, prev) === 1) {
+        count++;
+      } else {
+        break;
+      }
+    }
+    return count;
+  }, [entries, todayIso]);
 
   // 14-Day Rolling Cognitive Baseline
   const baselines = useMemo(() => {
@@ -435,7 +549,7 @@ export default function TrackPage() {
     return { baselineMs, baselineStroop };
   }, [runs]);
 
-  // Metabolic, Sleep & Phase Correlation Engine
+  // Metabolic, Sleep & Phase Correlation Engine (with sample-size guards & true next-day pairing)
   const analytics = useMemo(() => {
     if (entries.length === 0) return null;
     const avgFog = (
@@ -449,75 +563,107 @@ export default function TrackPage() {
     ).toFixed(1);
 
     const nudges: string[] = [];
+    const MIN_BUCKET = 3;
 
-    // 1. Sleep -> Focus & Next-Day Cognitive Shift
-    const shortSleep = entries.filter((e) => e.sleepHours < 6.5);
-    const goodSleep = entries.filter((e) => e.sleepHours >= 6.5);
-    if (shortSleep.length > 0 && goodSleep.length > 0) {
+    // Pair consecutive days (entries[i] -> entries[i + 1]) for true next-day effects
+    const nextDayPairs: { prev: DailyEntry; next: DailyEntry }[] = [];
+    for (let i = 0; i < entries.length - 1; i++) {
+      const d1 = parseISO(entries[i].date);
+      const d2 = parseISO(entries[i + 1].date);
+      if (differenceInCalendarDays(d2, d1) === 1) {
+        nextDayPairs.push({ prev: entries[i], next: entries[i + 1] });
+      }
+    }
+
+    // 1. Sleep duration -> Next-day Focus (requires >= 3 days per bucket)
+    const afterShortSleep = nextDayPairs.filter((p) => p.prev.sleepHours < 6.5);
+    const afterGoodSleep = nextDayPairs.filter((p) => p.prev.sleepHours >= 6.5);
+    if (
+      afterShortSleep.length >= MIN_BUCKET &&
+      afterGoodSleep.length >= MIN_BUCKET
+    ) {
       const shortFocus =
-        shortSleep.reduce((s, e) => s + e.focus, 0) / shortSleep.length;
+        afterShortSleep.reduce((s, p) => s + p.next.focus, 0) /
+        afterShortSleep.length;
       const goodFocus =
-        goodSleep.reduce((s, e) => s + e.focus, 0) / goodSleep.length;
+        afterGoodSleep.reduce((s, p) => s + p.next.focus, 0) /
+        afterGoodSleep.length;
       if (goodFocus > 0) {
         const dropPct = Math.round(((goodFocus - shortFocus) / goodFocus) * 100);
         if (dropPct > 0) {
           nudges.push(
-            `Focus dips ~${dropPct}% on days after less than 6.5 hours of sleep (${shortFocus.toFixed(
+            `Next-day focus averages ~${dropPct}% lower after <6.5h sleep (${shortFocus.toFixed(
               1
-            )}/10 vs. ${goodFocus.toFixed(1)}/10).`
+            )}/10 vs. ${goodFocus.toFixed(1)}/10; n=${afterShortSleep.length} vs ${
+              afterGoodSleep.length
+            } pairs).`
           );
         }
       }
     }
 
-    // 2. Late Meal / High Carb -> Next-Day Reaction or Fog
-    const lateCarbDays = entries.filter((e) =>
-      e.triggers?.includes("Late Meal / High Carb")
+    // 2. Late Meal / High Carb -> Next-day Brain Fog (requires >= 3 days per bucket)
+    const afterLateCarb = nextDayPairs.filter((p) =>
+      p.prev.triggers?.includes("Late Meal / High Carb")
     );
-    const cleanMealDays = entries.filter(
-      (e) => !e.triggers?.includes("Late Meal / High Carb")
+    const afterNormalMeal = nextDayPairs.filter(
+      (p) => !p.prev.triggers?.includes("Late Meal / High Carb")
     );
-    if (lateCarbDays.length > 0 && cleanMealDays.length > 0) {
+    if (
+      afterLateCarb.length >= MIN_BUCKET &&
+      afterNormalMeal.length >= MIN_BUCKET
+    ) {
       const lateFog = (
-        lateCarbDays.reduce((s, e) => s + e.brainFog, 0) / lateCarbDays.length
+        afterLateCarb.reduce((s, p) => s + p.next.brainFog, 0) /
+        afterLateCarb.length
       ).toFixed(1);
       const normalFog = (
-        cleanMealDays.reduce((s, e) => s + e.brainFog, 0) / cleanMealDays.length
+        afterNormalMeal.reduce((s, p) => s + p.next.brainFog, 0) /
+        afterNormalMeal.length
       ).toFixed(1);
       nudges.push(
-        `Days tagged "Late Meal / High Carb" average ${lateFog}/10 brain fog vs. ${normalFog}/10 otherwise.`
+        `Next-day brain fog averages ${lateFog}/10 after "Late Meal / High Carb" vs. ${normalFog}/10 otherwise (n=${afterLateCarb.length} vs ${afterNormalMeal.length} pairs).`
       );
     }
 
-    // 3. Hormone Phase Cognitive Pattern
-    const phaseMap: Record<string, { totalFog: number; count: number }> = {};
-    entries.forEach((e) => {
-      const p = e.hormonePhase || "Follicular";
-      if (!phaseMap[p]) phaseMap[p] = { totalFog: 0, count: 0 };
-      phaseMap[p].totalFog += e.brainFog;
-      phaseMap[p].count += 1;
-    });
-    const highestFogPhase = Object.entries(phaseMap)
-      .map(([phase, d]) => ({ phase, avg: d.totalFog / d.count }))
-      .sort((a, b) => b.avg - a.avg)[0];
-    if (highestFogPhase && Object.keys(phaseMap).length > 1) {
-      nudges.push(
-        `Highest average brain fog (${highestFogPhase.avg.toFixed(
-          1
-        )}/10) clusters during your ${highestFogPhase.phase} phase.`
-      );
+    // 3. Hormone Phase Pattern (requires >= 3 days in top phase and >= 5 total entries)
+    if (entries.length >= 5) {
+      const phaseMap: Record<string, { totalFog: number; count: number }> = {};
+      entries.forEach((e) => {
+        const p = e.hormonePhase || "Follicular";
+        if (!phaseMap[p]) phaseMap[p] = { totalFog: 0, count: 0 };
+        phaseMap[p].totalFog += e.brainFog;
+        phaseMap[p].count += 1;
+      });
+      const rankedPhases = Object.entries(phaseMap)
+        .filter(([, d]) => d.count >= MIN_BUCKET)
+        .map(([phase, d]) => ({
+          phase,
+          avg: d.totalFog / d.count,
+          count: d.count,
+        }))
+        .sort((a, b) => b.avg - a.avg);
+
+      if (rankedPhases.length > 0 && Object.keys(phaseMap).length > 1) {
+        const top = rankedPhases[0];
+        nudges.push(
+          `Early observation: highest average brain fog (${top.avg.toFixed(
+            1
+          )}/10 across n=${top.count} logged days) appears during ${top.phase}.`
+        );
+      }
     }
 
-    // 4. Post-Meal Walk / Movement Boost
+    // 4. Same-day Post-Meal Walk association (requires >= 3 days)
     const walkDays = entries.filter((e) =>
       e.triggers?.includes("Post-Meal Walk")
     );
-    if (walkDays.length > 0) {
+    if (walkDays.length >= MIN_BUCKET) {
       const walkFocus = (
         walkDays.reduce((s, e) => s + e.focus, 0) / walkDays.length
       ).toFixed(1);
       nudges.push(
-        `Days with a Post-Meal Walk average ${walkFocus}/10 focus across ${walkDays.length} logged session(s).`
+        `Days tagged "Post-Meal Walk" average ${walkFocus}/10 focus (n=${walkDays.length} days).`
       );
     }
 
@@ -535,7 +681,6 @@ export default function TrackPage() {
     return { avgFog, avgFocus, avgSleep, nudges, topTriggers };
   }, [entries]);
 
-  // Chart data enriched with Hormone Phase band color & scaled reaction index
   const chartData = useMemo(() => {
     return entries.map((e) => {
       const phaseObj =
@@ -545,7 +690,6 @@ export default function TrackPage() {
         ...e,
         phaseBand: 10,
         phaseColor: phaseObj.color,
-        // Scale reaction ms onto 0-10 visual axis (e.g., 300ms -> 3.0, 500ms -> 5.0)
         reactionScaled: e.reactionMs
           ? Number((e.reactionMs / 100).toFixed(2))
           : null,
@@ -553,10 +697,8 @@ export default function TrackPage() {
     });
   }, [entries]);
 
-  const streak = useMemo(() => {
-    if (entries.length === 0) return 0;
-    return Math.min(entries.length, 7);
-  }, [entries]);
+  const slidersComplete =
+    brainFog !== null && focus !== null && energy !== null && mood !== null;
 
   return (
     <div className="min-h-screen bg-[#F7F5F0] text-[#1C1F1D]">
@@ -631,15 +773,13 @@ export default function TrackPage() {
         {/* Encrypted Local Backup & Restore Drawer */}
         {backupOpen && (
           <div className="bg-white/95 border border-[#D5CEC2] rounded-2xl p-5 space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div>
-                <h2 className="font-serif text-lg font-medium flex items-center gap-2">
-                  <Lock className="w-4 h-4 text-[#2F5D50]" /> AES-256 Encrypted Local Backup &amp; Restore
-                </h2>
-                <p className="text-xs text-[#5A605C]">
-                  Your history never touches a server. Encrypt it with a passphrase to back up or move devices.
-                </p>
-              </div>
+            <div>
+              <h2 className="font-serif text-lg font-medium flex items-center gap-2">
+                <Lock className="w-4 h-4 text-[#2F5D50]" /> AES-256 Encrypted Local Backup &amp; Restore
+              </h2>
+              <p className="text-xs text-[#5A605C]">
+                Your history never touches a server. Encrypt it with a passphrase to export or merge onto another browser.
+              </p>
             </div>
 
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
@@ -682,7 +822,7 @@ export default function TrackPage() {
           </div>
         )}
 
-        {/* XP & Streak Bar */}
+        {/* XP & Consecutive-Day Streak Bar */}
         <GamificationBar
           xp={xp}
           streak={streak}
@@ -742,19 +882,24 @@ export default function TrackPage() {
               </div>
             </div>
 
-            {/* Sliders */}
+            {/* Sliders (Start unrated so users actively select values) */}
             <div className="grid sm:grid-cols-2 gap-5">
               <div>
                 <div className="flex justify-between text-xs font-semibold mb-1.5">
                   <span>Brain Fog (1–10)</span>
-                  <span className="text-[#2F5D50]">{brainFog}/10</span>
+                  <span className="text-[#2F5D50]">
+                    {brainFog !== null ? `${brainFog}/10` : "Tap to rate"}
+                  </span>
                 </div>
                 <input
                   type="range"
                   min={1}
                   max={10}
-                  value={brainFog}
+                  value={brainFog ?? 5}
                   onChange={(e) => setBrainFog(Number(e.target.value))}
+                  onPointerDown={() => {
+                    if (brainFog === null) setBrainFog(5);
+                  }}
                   className="w-full accent-[#2F5D50]"
                 />
               </div>
@@ -762,14 +907,19 @@ export default function TrackPage() {
               <div>
                 <div className="flex justify-between text-xs font-semibold mb-1.5">
                   <span>Mental Focus (1–10)</span>
-                  <span className="text-[#2F5D50]">{focus}/10</span>
+                  <span className="text-[#2F5D50]">
+                    {focus !== null ? `${focus}/10` : "Tap to rate"}
+                  </span>
                 </div>
                 <input
                   type="range"
                   min={1}
                   max={10}
-                  value={focus}
+                  value={focus ?? 5}
                   onChange={(e) => setFocus(Number(e.target.value))}
+                  onPointerDown={() => {
+                    if (focus === null) setFocus(5);
+                  }}
                   className="w-full accent-[#2F5D50]"
                 />
               </div>
@@ -777,14 +927,19 @@ export default function TrackPage() {
               <div>
                 <div className="flex justify-between text-xs font-semibold mb-1.5">
                   <span>Physical Energy (1–10)</span>
-                  <span className="text-[#2F5D50]">{energy}/10</span>
+                  <span className="text-[#2F5D50]">
+                    {energy !== null ? `${energy}/10` : "Tap to rate"}
+                  </span>
                 </div>
                 <input
                   type="range"
                   min={1}
                   max={10}
-                  value={energy}
+                  value={energy ?? 5}
                   onChange={(e) => setEnergy(Number(e.target.value))}
+                  onPointerDown={() => {
+                    if (energy === null) setEnergy(5);
+                  }}
                   className="w-full accent-[#2F5D50]"
                 />
               </div>
@@ -792,20 +947,25 @@ export default function TrackPage() {
               <div>
                 <div className="flex justify-between text-xs font-semibold mb-1.5">
                   <span>Mood Stability (1–10)</span>
-                  <span className="text-[#2F5D50]">{mood}/10</span>
+                  <span className="text-[#2F5D50]">
+                    {mood !== null ? `${mood}/10` : "Tap to rate"}
+                  </span>
                 </div>
                 <input
                   type="range"
                   min={1}
                   max={10}
-                  value={mood}
+                  value={mood ?? 5}
                   onChange={(e) => setMood(Number(e.target.value))}
+                  onPointerDown={() => {
+                    if (mood === null) setMood(5);
+                  }}
                   className="w-full accent-[#2F5D50]"
                 />
               </div>
             </div>
 
-            {/* Sleep & Cycle Day */}
+            {/* Sleep & Cycle Day (Empty placeholders instead of fabricated defaults) */}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold mb-1.5">
@@ -815,15 +975,16 @@ export default function TrackPage() {
                   type="number"
                   step={0.5}
                   min={0}
-                  max={16}
+                  max={20}
                   value={sleepHours}
-                  onChange={(e) => setSleepHours(Number(e.target.value))}
+                  onChange={(e) => setSleepHours(e.target.value)}
+                  placeholder="e.g. 7.5"
                   className="w-full rounded-xl bg-[#F7F5F0] border border-[#D8D0C3] px-3.5 py-2 text-sm font-medium"
                 />
               </div>
               <div>
                 <label className="block text-xs font-semibold mb-1.5">
-                  Cycle Day (or N/A)
+                  Cycle Day (optional)
                 </label>
                 <input
                   type="text"
@@ -901,10 +1062,20 @@ export default function TrackPage() {
               />
             </div>
 
+            {formError && (
+              <p className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#A84A32]">
+                <AlertCircle className="w-4 h-4 shrink-0" /> {formError}
+              </p>
+            )}
+
             <div className="flex items-center justify-between gap-4 pt-1">
               <button
                 type="submit"
-                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#1C1F1D] hover:bg-[#2F5D50] text-[#F7F5F0] text-xs font-semibold tracking-wide transition cursor-pointer"
+                className={`inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-xs font-semibold tracking-wide transition cursor-pointer ${
+                  slidersComplete && sleepHours !== ""
+                    ? "bg-[#1C1F1D] hover:bg-[#2F5D50] text-[#F7F5F0]"
+                    : "bg-[#D5CEC2] text-[#5A605C]"
+                }`}
               >
                 <Plus className="w-4 h-4" /> Save Entry (+30 XP)
               </button>
@@ -972,8 +1143,8 @@ export default function TrackPage() {
               </div>
             </div>
 
-            {/* Plain-Language Metabolic & Habit Correlation Nudges */}
-            {analytics.nudges.length > 0 && (
+            {/* Sample-Size Aware Nudges */}
+            {analytics.nudges.length > 0 ? (
               <div className="grid md:grid-cols-2 gap-3">
                 {analytics.nudges.map((nudge, idx) => (
                   <div
@@ -987,6 +1158,10 @@ export default function TrackPage() {
                   </div>
                 ))}
               </div>
+            ) : (
+              <p className="text-xs text-[#5A605C] bg-[#F7F5F0] border border-[#E3DDD2] rounded-xl px-4 py-3">
+                Log at least 5–6 consecutive days (with at least 3 days per sleep/meal comparison bucket) to unlock statistical pattern nudges.
+              </p>
             )}
 
             {/* Phase Legend */}
@@ -1005,7 +1180,7 @@ export default function TrackPage() {
               </div>
             )}
 
-            {/* Composed Chart with Cycle Phase Overlay + Fog + Focus + Reaction */}
+            {/* Composed Chart */}
             <div className="h-72 w-full pt-1">
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={chartData}>
@@ -1025,12 +1200,19 @@ export default function TrackPage() {
                       borderRadius: "12px",
                       fontSize: "12px",
                     }}
-                    formatter={(value: unknown, name: unknown, props: { payload?: DailyEntry }) => {
+                    formatter={(
+                      value: unknown,
+                      name: unknown,
+                      props: { payload?: DailyEntry }
+                    ) => {
                       if (name === "Hormone Phase") {
                         return [props?.payload?.hormonePhase || "—", "Phase"];
                       }
                       if (name === "Reaction (x100ms)") {
-                        return [`${Math.round(Number(value) * 100)}ms`, "Reaction Speed"];
+                        return [
+                          `${Math.round(Number(value) * 100)}ms`,
+                          "Reaction Speed",
+                        ];
                       }
                       return [`${value}/10`, String(name)];
                     }}

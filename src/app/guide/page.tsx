@@ -1,66 +1,93 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { CheckSquare, Square, ArrowRight } from "lucide-react";
+import { CheckCircle2, Circle, BookOpen, ExternalLink } from "lucide-react";
 
-const RESET_HABITS = [
+const HABITS = [
   {
     id: "protein",
-    title: "25–30g Protein Within 60 Mins of Waking",
-    detail:
-      "Blunts morning glucose spikes that often trigger mid-morning cognitive fog.",
+    title: "25–30g Protein-First Breakfast",
+    why: "Higher-protein morning meals can help blunt post-meal glucose spikes and reduce mid-morning energy dips.",
   },
   {
     id: "walk",
     title: "10-Minute Post-Meal Walk",
-    detail:
-      "Helps skeletal muscle clear post-meal glucose without needing a heavy insulin surge.",
+    why: "Light muscle activity after meals supports skeletal muscle glucose uptake without requiring intense workouts.",
   },
   {
     id: "sleep",
-    title: "Consistent 7.5h+ Sleep Window",
-    detail:
-      "Even one <6.5h night measurably lowers next-day insulin sensitivity and working memory.",
+    title: "Consistent 7.5–8h Sleep Window",
+    why: "Even short-term sleep restriction is associated with reduced insulin sensitivity and slower working memory the next day.",
   },
   {
-    id: "hydrate",
-    title: "Electrolytes & Water Before Caffeine",
-    detail:
-      "Reduces cortisol-driven jitters and afternoon energy crashes.",
+    id: "hydration",
+    title: "500ml Water Before Morning Caffeine",
+    why: "Rehydrating before coffee may help minimize morning jitteriness and sharp mid-afternoon energy crashes.",
   },
 ];
 
 const LAB_PANELS = [
   {
-    name: "Fasting Insulin & HOMA-IR",
-    why: "Catches early insulin resistance years before fasting glucose or HbA1c turns abnormal.",
+    category: "Metabolic & Glycemic",
+    tests: "Fasting Insulin, Fasting Glucose, HbA1c, Lipid Panel",
+    note: "Standard fasting glucose can look normal even when fasting insulin is elevated—ask your clinician if HOMA-IR or fasting insulin is appropriate.",
   },
   {
-    name: "HbA1c & Lipid Profile",
-    why: "Tracks 90-day glycemic stability and metabolic cardiovascular markers.",
+    category: "Endocrine & Androgens",
+    tests: "Total & Free Testosterone, SHBG, DHEA-S, LH / FSH",
+    note: "Helps clarify androgen excess and endocrine patterns behind irregular cycles, fatigue, or mood shifts.",
   },
   {
-    name: "Total & Free Testosterone + DHEA-S",
-    why: "Evaluates ovarian vs. adrenal androgen activity across reproductive and 45+ stages.",
-  },
-  {
-    name: "TSH, Free T4, Vitamin D & B12",
-    why: "Rules out overlapping thyroid or micronutrient causes of fatigue and brain fog.",
+    category: "Thyroid & Micronutrients",
+    tests: "TSH, Free T4, Vitamin B12, Vitamin D (25-OH), Ferritin",
+    note: "Subclinical hypothyroidism, low ferritin, and B12/Vitamin D insufficiency frequently overlap with PMOS brain fog.",
   },
 ];
 
-export default function GuidePage() {
-  const [checked, setChecked] = useState<string[]>(["protein"]);
+const SOURCES = [
+  {
+    title: "Huddleston HG et al., Neurology (2024)",
+    detail:
+      "Observational cohort study reporting lower midlife cognitive performance (attention, memory, verbal fluency) in participants with PCOS.",
+  },
+  {
+    title: "International Evidence-Based Guideline for the Assessment and Management of PCOS (2023/2026 Updates)",
+    detail:
+      "Clinical consensus guiding metabolic screening (oral glucose tolerance, HbA1c, lipids), lifestyle foundations, and mental/cognitive health awareness.",
+  },
+  {
+    title: "Ministry of Health & Family Welfare (MoHFW) & NFHS-5 India Reference Data",
+    detail:
+      "Public health nutrition, anemia/ferritin screening, and non-communicable metabolic risk frameworks informing baseline micronutrient and glycemic checklists.",
+  },
+];
 
-  const toggle = (id: string) => {
-    setChecked((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
-    );
+const HABIT_KEY = "clarity_pmos_habits_v5";
+
+export default function GuidePage() {
+  const [checked, setChecked] = useState<string[]>([]);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(HABIT_KEY);
+      if (raw) setChecked(JSON.parse(raw));
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const toggleHabit = (id: string) => {
+    const next = checked.includes(id)
+      ? checked.filter((h) => h !== id)
+      : [...checked, id];
+    setChecked(next);
+    localStorage.setItem(HABIT_KEY, JSON.stringify(next));
   };
 
   return (
     <div className="min-h-screen bg-[#F7F5F0] text-[#1C1F1D]">
+      {/* Top Bar */}
       <header className="border-b border-[#E3DDD2] bg-[#F7F5F0]/90 backdrop-blur-sm sticky top-0 z-20">
         <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5">
@@ -79,7 +106,7 @@ export default function GuidePage() {
             </Link>
             <Link
               href="/track"
-              className="px-4 py-1.5 rounded-full bg-[#1C1F1D] hover:bg-[#2F5D50] text-[#F7F5F0] font-semibold transition"
+              className="px-4 py-1.5 rounded-full bg-[#1C1F1D] text-[#F7F5F0] hover:bg-[#2F5D50] transition"
             >
               Open Log
             </Link>
@@ -87,54 +114,58 @@ export default function GuidePage() {
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-6 py-12 space-y-12">
-        <div className="border-b border-[#E3DDD2] pb-8 space-y-3">
+      <main className="max-w-5xl mx-auto px-6 py-12 space-y-14">
+        {/* Header */}
+        <section className="space-y-3 border-b border-[#E3DDD2] pb-8">
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#2F5D50]">
-            PMOS Action Toolkit
+            Evidence-Aligned Action Toolkit
           </p>
-          <h1 className="font-serif text-3xl sm:text-5xl font-normal">
-            Daily clarity habits &amp; clinical lab guide
+          <h1 className="font-serif text-3xl sm:text-5xl font-normal leading-tight">
+            Supporting metabolic &amp; cognitive clarity
           </h1>
-          <p className="text-sm sm:text-base text-[#4F5551] max-w-2xl leading-relaxed">
-            Practical, low-friction habits to steady energy and focus, paired
-            with the core endocrine and metabolic labs worth discussing with a
-            doctor—including across perimenopause and age 45+.
+          <p className="text-sm text-[#5A605C] max-w-2xl leading-relaxed">
+            Practical, low-friction daily habits and clinical lab conversations
+            grounded in endocrine and public-health literature. Always review lab
+            orders and lifestyle changes with a qualified clinician.
           </p>
-        </div>
+        </section>
 
-        {/* Interactive Daily Reset Checklist */}
+        {/* Interactive Daily Habits Checklist */}
         <section className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="font-serif text-2xl font-normal">
-              Daily Brain-Fog Reset ({checked.length}/{RESET_HABITS.length})
+              Daily Focus-Support Habits
             </h2>
+            <span className="text-xs font-semibold text-[#2F5D50]">
+              {checked.length}/{HABITS.length} completed today
+            </span>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-4">
-            {RESET_HABITS.map((h) => {
-              const isDone = checked.includes(h.id);
+          <div className="grid sm:grid-cols-2 gap-4">
+            {HABITS.map((habit) => {
+              const done = checked.includes(habit.id);
               return (
                 <button
-                  key={h.id}
+                  key={habit.id}
                   type="button"
-                  onClick={() => toggle(h.id)}
+                  onClick={() => toggleHabit(habit.id)}
                   className={`text-left p-5 rounded-2xl border transition cursor-pointer flex items-start gap-3.5 ${
-                    isDone
-                      ? "bg-white border-[#2F5D50] shadow-2xs"
-                      : "bg-white/70 border-[#E3DDD2] hover:border-[#1C1F1D]"
+                    done
+                      ? "bg-[#2F5D50]/10 border-[#2F5D50]"
+                      : "bg-white/85 border-[#E3DDD2] hover:border-[#1C1F1D]"
                   }`}
                 >
-                  {isDone ? (
-                    <CheckSquare className="w-5 h-5 text-[#2F5D50] shrink-0 mt-0.5" />
+                  {done ? (
+                    <CheckCircle2 className="w-5 h-5 text-[#2F5D50] shrink-0 mt-0.5" />
                   ) : (
-                    <Square className="w-5 h-5 text-[#8B918D] shrink-0 mt-0.5" />
+                    <Circle className="w-5 h-5 text-[#9AA09C] shrink-0 mt-0.5" />
                   )}
-                  <div>
-                    <h3 className="font-serif text-lg font-medium text-[#1C1F1D]">
-                      {h.title}
-                    </h3>
-                    <p className="text-xs sm:text-sm text-[#5A605C] mt-1 leading-relaxed">
-                      {h.detail}
+                  <div className="space-y-1">
+                    <p className="font-serif text-lg font-medium text-[#1C1F1D]">
+                      {habit.title}
+                    </p>
+                    <p className="text-xs text-[#5A605C] leading-relaxed">
+                      {habit.why}
                     </p>
                   </div>
                 </button>
@@ -143,36 +174,57 @@ export default function GuidePage() {
           </div>
         </section>
 
-        {/* Lab Screening Guide */}
+        {/* Clinical Lab Guide */}
         <section className="space-y-4">
           <h2 className="font-serif text-2xl font-normal">
-            Key PMOS &amp; Metabolic Screening Panels
+            Lab Panels to Discuss With Your Doctor
           </h2>
-          <div className="grid md:grid-cols-2 gap-4">
-            {LAB_PANELS.map((lab) => (
+
+          <div className="grid md:grid-cols-3 gap-5">
+            {LAB_PANELS.map((panel) => (
               <div
-                key={lab.name}
-                className="p-5 rounded-2xl bg-white/80 border border-[#E3DDD2] space-y-1.5"
+                key={panel.category}
+                className="bg-white/85 border border-[#E3DDD2] rounded-2xl p-6 space-y-2.5"
               >
-                <h3 className="font-serif text-lg font-medium text-[#1C1F1D]">
-                  {lab.name}
-                </h3>
-                <p className="text-xs sm:text-sm text-[#5A605C] leading-relaxed">
-                  {lab.why}
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-[#2F5D50]">
+                  {panel.category}
+                </p>
+                <p className="font-serif text-base font-medium text-[#1C1F1D]">
+                  {panel.tests}
+                </p>
+                <p className="text-xs text-[#5A605C] leading-relaxed">
+                  {panel.note}
                 </p>
               </div>
             ))}
           </div>
         </section>
 
-        <div className="pt-2">
-          <Link
-            href="/track"
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#1C1F1D] hover:bg-[#2F5D50] text-[#F7F5F0] text-xs font-semibold tracking-wide transition"
-          >
-            Go to Daily Logger <ArrowRight className="w-4 h-4" />
-          </Link>
-        </div>
+        {/* Clinical References & Citations */}
+        <section className="bg-white/85 border border-[#E3DDD2] rounded-2xl p-6 sm:p-8 space-y-4">
+          <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#2F5D50]">
+            <BookOpen className="w-3.5 h-3.5" /> Clinical References &amp; Public Health Grounding
+          </div>
+          <div className="grid md:grid-cols-3 gap-4">
+            {SOURCES.map((src) => (
+              <div
+                key={src.title}
+                className="p-4 rounded-xl bg-[#F7F5F0] border border-[#E3DDD2] space-y-1.5"
+              >
+                <p className="font-serif text-sm font-medium text-[#1C1F1D] flex items-start justify-between gap-2">
+                  <span>{src.title}</span>
+                  <ExternalLink className="w-3.5 h-3.5 text-[#5A605C] shrink-0 mt-0.5" />
+                </p>
+                <p className="text-xs text-[#5A605C] leading-relaxed">
+                  {src.detail}
+                </p>
+              </div>
+            ))}
+          </div>
+          <p className="text-[11px] text-[#6E7570] pt-1">
+            Medical Disclaimer: Clarity provides educational health information and personal tracking tools only. It does not provide medical advice, diagnosis, or treatment recommendations.
+          </p>
+        </section>
       </main>
     </div>
   );

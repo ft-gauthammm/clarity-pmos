@@ -68,7 +68,7 @@ export default function HomePage() {
             </h1>
 
             <p className="text-sm sm:text-base text-[#4F5551] max-w-xl leading-relaxed">
-              Clarity pairs 30-second daily check-ins, short cognitive exercises,
+              Clarity pairs quick daily check-ins, short cognitive exercises,
               and local pattern insights with a printable 1-page clinical brief—all
               stored privately in your browser.
             </p>
@@ -125,8 +125,8 @@ export default function HomePage() {
             <span className="font-serif italic text-sm text-[#2F5D50]">01</span>
             <h2 className="font-serif text-xl font-medium">Daily Signals</h2>
             <p className="text-xs sm:text-sm text-[#5A605C] leading-relaxed">
-              Log brain fog, focus, energy, mood, sleep, cycle day, and
-              metabolic symptoms in under a minute with zero account setup.
+              Log brain fog, focus, energy, mood, sleep, hormone state, and
+              daily triggers in under a minute with zero account setup.
             </p>
           </div>
 
@@ -135,7 +135,7 @@ export default function HomePage() {
             <h2 className="font-serif text-xl font-medium">Brief Cognitive Checks</h2>
             <p className="text-xs sm:text-sm text-[#5A605C] leading-relaxed">
               Run a 20-second reaction and memory check or a 15-second Stroop
-              sprint to pair subjective fog with objective focus data.
+              sprint calibrated against your 14-day personal baseline.
             </p>
           </div>
 
@@ -143,8 +143,8 @@ export default function HomePage() {
             <span className="font-serif italic text-sm text-[#2F5D50]">03</span>
             <h2 className="font-serif text-xl font-medium">Doctor Brief</h2>
             <p className="text-xs sm:text-sm text-[#5A605C] leading-relaxed">
-              Export a clean 1-page summary of sleep links, recurring symptoms,
-              and metabolic panels to take into medical appointments.
+              Export a clean 1-page summary of next-day sleep patterns,
+              triggers, and metabolic panels for medical appointments.
             </p>
           </div>
         </section>
@@ -158,7 +158,7 @@ export default function HomePage() {
               </div>
               <h2 className="font-serif text-2xl sm:text-3xl font-normal text-[#1C1F1D]">
                 {viewMode === "pmos"
-                  ? "Why PCOS was reframed as PMOS"
+                  ? "Why PCOS is being reframed as PMOS"
                   : "Limitations of the legacy PCOS label"}
               </h2>
             </div>
@@ -173,7 +173,7 @@ export default function HomePage() {
                     : "bg-[#EFECE6] text-[#5A605C] hover:text-[#1C1F1D]"
                 }`}
               >
-                PMOS View (2026)
+                PMOS View
               </button>
               <button
                 type="button"
@@ -193,9 +193,9 @@ export default function HomePage() {
             <div className="space-y-6">
               <p className="font-serif text-lg sm:text-xl text-[#1C1F1D] leading-relaxed max-w-3xl">
                 <strong>PMOS (Polyendocrine Metabolic Ovarian Syndrome)</strong>{" "}
-                reflects the May 2026 international consensus recognizing that
-                insulin signaling, endocrine balance, and cognitive clarity are
-                central to the condition—not secondary side effects.
+                frames the condition around systemic insulin signaling,
+                endocrine health, and daily cognitive well-being—not ovarian
+                ultrasounds alone.
               </p>
 
               <div className="grid sm:grid-cols-3 gap-4">
@@ -207,22 +207,23 @@ export default function HomePage() {
                     Endocrine + Metabolic
                   </p>
                   <p className="text-xs text-[#5A605C] leading-relaxed">
-                    Connects insulin resistance, afternoon energy crashes, and
-                    androgen balance across all life stages—including 45+.
+                    Accounts for insulin resistance, energy crashes, and
+                    androgen patterns across reproductive years and midlife.
                   </p>
                 </div>
 
                 <div className="p-4 rounded-xl bg-[#F7F5F0] border border-[#E3DDD2] space-y-1.5">
                   <p className="text-[11px] font-semibold uppercase tracking-wider text-[#2F5D50]">
-                    Cognitive Research
+                    Observational Research
                   </p>
                   <p className="font-serif text-base font-medium text-[#1C1F1D]">
-                    Brain Fog &amp; Recall
+                    Attention &amp; Memory
                   </p>
                   <p className="text-xs text-[#5A605C] leading-relaxed">
-                    Informed by UCSF <em>Neurology</em> findings linking
-                    metabolic and hormonal shifts to measurable attention and
-                    memory drag.
+                    A 2024 UCSF observational cohort study in <em>Neurology</em>{" "}
+                    found lower midlife memory and attention scores among
+                    participants with PCOS, motivating closer cognitive
+                    tracking.
                   </p>
                 </div>
 
@@ -231,11 +232,12 @@ export default function HomePage() {
                     Better Consults
                   </p>
                   <p className="font-serif text-base font-medium text-[#1C1F1D]">
-                    Actionable Lab Panels
+                    Structured Lab Panels
                   </p>
                   <p className="text-xs text-[#5A605C] leading-relaxed">
-                    Shifts doctor visits beyond period dates toward fasting
-                    insulin, HbA1c, thyroid, and androgen baselines.
+                    Helps organize questions around fasting insulin, HbA1c,
+                    thyroid function, and androgen baselines for clinician
+                    review.
                   </p>
                 </div>
               </div>
@@ -244,9 +246,9 @@ export default function HomePage() {
             <div className="space-y-6">
               <p className="font-serif text-lg sm:text-xl text-[#1C1F1D] leading-relaxed max-w-3xl">
                 <strong>PCOS (Polycystic Ovary Syndrome)</strong> named the
-                condition after ovarian follicles on ultrasound—causing decades
-                of confusion for patients without cysts and overlooking brain
-                fog and metabolic fatigue.
+                condition after ovarian follicles on ultrasound—causing
+                confusion for patients without cysts and underemphasizing
+                metabolic fatigue and brain fog.
               </p>
 
               <div className="grid sm:grid-cols-3 gap-4">
@@ -259,8 +261,8 @@ export default function HomePage() {
                   </p>
                   <p className="text-xs text-[#5A605C] leading-relaxed">
                     Many people meet diagnostic criteria without polycystic
-                    ovaries, while others with ovarian follicles have no
-                    syndrome at all.
+                    ovaries, while multifollicular ovaries can occur without the
+                    syndrome.
                   </p>
                 </div>
 
@@ -272,9 +274,8 @@ export default function HomePage() {
                     Cycle-Only Apps
                   </p>
                   <p className="text-xs text-[#5A605C] leading-relaxed">
-                    Traditional trackers only log bleeding days, leaving sleep
-                    disruption, sugar cravings, and word-finding slips
-                    untracked.
+                    Traditional period trackers rarely correlate sleep quality,
+                    meal timing, or cognitive drag alongside cycle phases.
                   </p>
                 </div>
 
@@ -283,25 +284,26 @@ export default function HomePage() {
                     Midlife Gap
                   </p>
                   <p className="font-serif text-base font-medium text-[#1C1F1D]">
-                    Stops at Menopause
+                    Beyond Ovulation
                   </p>
                   <p className="text-xs text-[#5A605C] leading-relaxed">
-                    Focusing purely on ovulation left women over 45 without
-                    clear tracking for persistent metabolic and cognitive
-                    patterns.
+                    Focusing narrowly on ovulation overlooks persistent
+                    metabolic and cognitive symptoms after age 45.
                   </p>
                 </div>
               </div>
             </div>
           )}
 
-          <div className="pt-1 flex items-center justify-between text-xs text-[#5A605C]">
-            <span>Educational companion · Not a diagnostic tool</span>
+          <div className="pt-1 flex flex-wrap items-center justify-between gap-2 text-xs text-[#5A605C]">
+            <span>
+              Educational self-tracking companion · Not a medical device or diagnosis
+            </span>
             <Link
               href="/guide"
               className="font-semibold text-[#2F5D50] hover:underline inline-flex items-center gap-1"
             >
-              View recommended labs &amp; daily habits <ArrowRight className="w-3.5 h-3.5" />
+              View evidence-grounded guide &amp; citations <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
         </section>
