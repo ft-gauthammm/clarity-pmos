@@ -56,7 +56,7 @@ export default function HomePage() {
       </header>
 
       <main className="max-w-5xl mx-auto px-6 pt-14 pb-24 space-y-16">
-        {/* Centered / Asymmetric Editorial Hero */}
+        {/* Asymmetric Editorial Hero */}
         <section className="grid md:grid-cols-12 gap-10 items-end border-b border-[#E3DDD2] pb-14">
           <div className="md:col-span-8 space-y-5">
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#2F5D50]">
@@ -149,50 +149,160 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Terminology Note (PMOS vs PCOS) */}
-        <section className="bg-white/85 border border-[#E3DDD2] rounded-2xl p-6 sm:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-2 max-w-2xl">
-            <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-[#2F5D50]">
-              <Check className="w-3.5 h-3.5" /> Context
+        {/* Expanded Terminology & Clinical Context (PMOS vs PCOS) */}
+        <section className="bg-white/85 border border-[#E3DDD2] rounded-2xl p-6 sm:p-8 space-y-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#EFECE6] pb-5">
+            <div className="space-y-1.5">
+              <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#2F5D50]">
+                <Check className="w-3.5 h-3.5" /> Clinical Context
+              </div>
+              <h2 className="font-serif text-2xl sm:text-3xl font-normal text-[#1C1F1D]">
+                {viewMode === "pmos"
+                  ? "Why PCOS was reframed as PMOS"
+                  : "Limitations of the legacy PCOS label"}
+              </h2>
             </div>
-            {viewMode === "pmos" ? (
-              <p className="font-serif text-lg sm:text-xl text-[#1C1F1D] leading-relaxed">
-                <strong>PMOS</strong> (Polyendocrine Metabolic Ovarian Syndrome)
-                frames the condition around endocrine and metabolic health
-                alongside reproductive and cognitive patterns.
-              </p>
-            ) : (
-              <p className="font-serif text-lg sm:text-xl text-[#1C1F1D] leading-relaxed">
-                <strong>PCOS</strong> was the older ovarian-focused label, which
-                often missed broader metabolic and cognitive dimensions now
-                grouped under PMOS.
-              </p>
-            )}
+
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => setViewMode("pmos")}
+                className={`px-4 py-2 rounded-full text-xs font-semibold transition cursor-pointer ${
+                  viewMode === "pmos"
+                    ? "bg-[#1C1F1D] text-[#F7F5F0]"
+                    : "bg-[#EFECE6] text-[#5A605C] hover:text-[#1C1F1D]"
+                }`}
+              >
+                PMOS View (2026)
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("pcos")}
+                className={`px-4 py-2 rounded-full text-xs font-semibold transition cursor-pointer ${
+                  viewMode === "pcos"
+                    ? "bg-[#1C1F1D] text-[#F7F5F0]"
+                    : "bg-[#EFECE6] text-[#5A605C] hover:text-[#1C1F1D]"
+                }`}
+              >
+                Legacy PCOS
+              </button>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              type="button"
-              onClick={() => setViewMode("pmos")}
-              className={`px-4 py-2 rounded-full text-xs font-semibold transition cursor-pointer ${
-                viewMode === "pmos"
-                  ? "bg-[#1C1F1D] text-[#F7F5F0]"
-                  : "bg-[#EFECE6] text-[#5A605C]"
-              }`}
+          {viewMode === "pmos" ? (
+            <div className="space-y-6">
+              <p className="font-serif text-lg sm:text-xl text-[#1C1F1D] leading-relaxed max-w-3xl">
+                <strong>PMOS (Polyendocrine Metabolic Ovarian Syndrome)</strong>{" "}
+                reflects the May 2026 international consensus recognizing that
+                insulin signaling, endocrine balance, and cognitive clarity are
+                central to the condition—not secondary side effects.
+              </p>
+
+              <div className="grid sm:grid-cols-3 gap-4">
+                <div className="p-4 rounded-xl bg-[#F7F5F0] border border-[#E3DDD2] space-y-1.5">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-[#2F5D50]">
+                    Whole-Body Scope
+                  </p>
+                  <p className="font-serif text-base font-medium text-[#1C1F1D]">
+                    Endocrine + Metabolic
+                  </p>
+                  <p className="text-xs text-[#5A605C] leading-relaxed">
+                    Connects insulin resistance, afternoon energy crashes, and
+                    androgen balance across all life stages—including 45+.
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-xl bg-[#F7F5F0] border border-[#E3DDD2] space-y-1.5">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-[#2F5D50]">
+                    Cognitive Research
+                  </p>
+                  <p className="font-serif text-base font-medium text-[#1C1F1D]">
+                    Brain Fog &amp; Recall
+                  </p>
+                  <p className="text-xs text-[#5A605C] leading-relaxed">
+                    Informed by UCSF <em>Neurology</em> findings linking
+                    metabolic and hormonal shifts to measurable attention and
+                    memory drag.
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-xl bg-[#F7F5F0] border border-[#E3DDD2] space-y-1.5">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-[#2F5D50]">
+                    Better Consults
+                  </p>
+                  <p className="font-serif text-base font-medium text-[#1C1F1D]">
+                    Actionable Lab Panels
+                  </p>
+                  <p className="text-xs text-[#5A605C] leading-relaxed">
+                    Shifts doctor visits beyond period dates toward fasting
+                    insulin, HbA1c, thyroid, and androgen baselines.
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              <p className="font-serif text-lg sm:text-xl text-[#1C1F1D] leading-relaxed max-w-3xl">
+                <strong>PCOS (Polycystic Ovary Syndrome)</strong> named the
+                condition after ovarian follicles on ultrasound—causing decades
+                of confusion for patients without cysts and overlooking brain
+                fog and metabolic fatigue.
+              </p>
+
+              <div className="grid sm:grid-cols-3 gap-4">
+                <div className="p-4 rounded-xl bg-[#F7F5F0] border border-[#E3DDD2] space-y-1.5">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-[#7A7F7B]">
+                    Misleading Name
+                  </p>
+                  <p className="font-serif text-base font-medium text-[#1C1F1D]">
+                    Not Actual Cysts
+                  </p>
+                  <p className="text-xs text-[#5A605C] leading-relaxed">
+                    Many people meet diagnostic criteria without polycystic
+                    ovaries, while others with ovarian follicles have no
+                    syndrome at all.
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-xl bg-[#F7F5F0] border border-[#E3DDD2] space-y-1.5">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-[#7A7F7B]">
+                    Blind Spot
+                  </p>
+                  <p className="font-serif text-base font-medium text-[#1C1F1D]">
+                    Cycle-Only Apps
+                  </p>
+                  <p className="text-xs text-[#5A605C] leading-relaxed">
+                    Traditional trackers only log bleeding days, leaving sleep
+                    disruption, sugar cravings, and word-finding slips
+                    untracked.
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-xl bg-[#F7F5F0] border border-[#E3DDD2] space-y-1.5">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-[#7A7F7B]">
+                    Midlife Gap
+                  </p>
+                  <p className="font-serif text-base font-medium text-[#1C1F1D]">
+                    Stops at Menopause
+                  </p>
+                  <p className="text-xs text-[#5A605C] leading-relaxed">
+                    Focusing purely on ovulation left women over 45 without
+                    clear tracking for persistent metabolic and cognitive
+                    patterns.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="pt-1 flex items-center justify-between text-xs text-[#5A605C]">
+            <span>Educational companion · Not a diagnostic tool</span>
+            <Link
+              href="/guide"
+              className="font-semibold text-[#2F5D50] hover:underline inline-flex items-center gap-1"
             >
-              PMOS View
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode("pcos")}
-              className={`px-4 py-2 rounded-full text-xs font-semibold transition cursor-pointer ${
-                viewMode === "pcos"
-                  ? "bg-[#1C1F1D] text-[#F7F5F0]"
-                  : "bg-[#EFECE6] text-[#5A605C]"
-              }`}
-            >
-              PCOS Context
-            </button>
+              View recommended labs &amp; daily habits <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
           </div>
         </section>
       </main>

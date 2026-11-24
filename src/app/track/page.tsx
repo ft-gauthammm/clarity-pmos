@@ -60,6 +60,7 @@ export default function TrackPage() {
 
   // Form State
   const [date, setDate] = useState("");
+  const [printDate, setPrintDate] = useState("");
   const [brainFog, setBrainFog] = useState(4);
   const [focus, setFocus] = useState(7);
   const [energy, setEnergy] = useState(6);
@@ -71,6 +72,7 @@ export default function TrackPage() {
 
   useEffect(() => {
     setDate((prev) => prev || format(new Date(), "yyyy-MM-dd"));
+    setPrintDate(format(new Date(), "MMM d, yyyy"));
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) setEntries(JSON.parse(raw));
@@ -603,8 +605,7 @@ export default function TrackPage() {
               Clarity — PMOS Symptom &amp; Cognitive Brief
             </h1>
             <p className="text-xs text-gray-600">
-              Self-tracked patient log summary · Generated{" "}
-              {format(new Date(), "MMM d, yyyy")}
+              Self-tracked patient log summary · Generated {printDate}
             </p>
           </div>
           <span className="text-xs font-semibold">
