@@ -59,7 +59,7 @@ export default function TrackPage() {
   const [savedBanner, setSavedBanner] = useState(false);
 
   // Form State
-  const [date, setDate] = useState(() => format(new Date(), "yyyy-MM-dd"));
+  const [date, setDate] = useState("");
   const [brainFog, setBrainFog] = useState(4);
   const [focus, setFocus] = useState(7);
   const [energy, setEnergy] = useState(6);
@@ -70,6 +70,7 @@ export default function TrackPage() {
   const [notes, setNotes] = useState("");
 
   useEffect(() => {
+    setDate((prev) => prev || format(new Date(), "yyyy-MM-dd"));
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) setEntries(JSON.parse(raw));
@@ -117,9 +118,10 @@ export default function TrackPage() {
 
   const handleSaveEntry = (e: React.FormEvent) => {
     e.preventDefault();
+    const entryDate = date || format(new Date(), "yyyy-MM-dd");
     const newEntry: DailyEntry = {
-      id: `${date}-${Date.now()}`,
-      date,
+      id: `${entryDate}-${Date.now()}`,
+      date: entryDate,
       brainFog,
       focus,
       energy,
@@ -129,7 +131,7 @@ export default function TrackPage() {
       symptoms,
       notes,
     };
-    const filtered = entries.filter((item) => item.date !== date);
+    const filtered = entries.filter((item) => item.date !== entryDate);
     persistEntries([...filtered, newEntry]);
     persistStats(xp + 30, bestReactionMs, bestStroopScore);
     setSavedBanner(true);
