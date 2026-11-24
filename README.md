@@ -1,22 +1,21 @@
 # Clarity — PMOS Cognitive & Metabolic Companion
 
-**Live Demo:** [clarity-pmos.vercel.app](https://clarity-pmos.vercel.app)
+**Live Demo:** `https://clarity-pmos.vercel.app`
 
-Clarity is a privacy-first, offline-capable web application built around the May 2026 global consensus renaming PCOS to **PMOS (Polyendocrine Metabolic Ovarian Syndrome)** and recent UCSF *Neurology* research examining cognitive links (memory, attention, and brain fog).
+Clarity is a privacy-first web application built around the PMOS (Polyendocrine Metabolic Ovarian Syndrome) clinical framing, perimenopause and cardiometabolic awareness, and observational research on cognitive patterns (memory, attention, and brain fog). All daily logs, symptom ratings, cognitive runs, and lab snapshots stay in the browser (`localStorage`) with zero accounts or backend servers, plus optional AES-256 encrypted local backups and a print-ready clinical summary.
 
 ## Key Features
-* **30-Second Daily Logger (`/track`):** Track brain fog, focus, energy, mood, sleep hours, cycle day, and metabolic signals locally in `localStorage` with zero accounts or cloud servers.
-* **Objective Cognitive Mini-Tests:**
-  * *20-Sec Attention & Working Memory Test* (reaction speed in ms + 3×3 sequence recall).
-  * *15-Sec Stroop Focus Sprint* (verbal interference control with local high-score tracking).
-* **On-Device Pattern Engine:** Automatically computes sleep-to-brain-fog correlations, recurring symptom frequencies, and rolling focus trends.
-* **1-Click Clinical Doctor Brief:** Generates a clean, print-ready 1-page PDF summary with averages, detected correlations, recent logs, and metabolic screening panels (HbA1c, fasting insulin, thyroid, androgens) to discuss with a clinician.
-* **PMOS Action Toolkit (`/guide`):** Interactive daily brain-fog reset habit checklist and lab screening guide grounded in Indian (NFHS-5 / MoHFW) and global clinical guidelines.
+- **Daily Signal & Individual Symptom Tracker (`/track`)**: Log brain fog, focus, energy, mood, sleep hours, optional blood pressure/resting heart rate, observable cycle/perimenopause cues (no phase guessing required), 1-tap triggers, and categorized individual symptoms (`1–5` severity + custom symptoms).
+- **Cognitive Mini-Checks & 14-Day Baseline**: Includes a 20-second reaction & word-recall check and a 15-second Stroop sprint with rolling 14-day personal baseline comparisons.
+- **On-Device Pattern & Symptom Engine**: Computes sample-size-guarded next-day correlations, cycle/stage overlays, and per-symptom breakdowns (frequency, average severity, peak stage, and top co-occurring trigger) locally in the browser.
+- **1-Click Clinical Doctor Brief**: Generates a clean, print-ready summary with averages, individual symptom analysis, recent logs, lipid/glycemic snapshots, and metabolic/endocrine panels to discuss with a clinician.
+- **AES-256 Encrypted Local Backup & Restore**: Export and re-import passphrase-protected `.clarity.enc` backup files locally with `MERGE`, `REPLACE`, or cancel options.
+- **Action Toolkit & References (`/guide`)**: Date-scoped daily focus-support habit checklist, lab discussion guide, and linked clinical/public-health references.
 
 ## Tech Stack
-* **Framework:** Next.js 15 (App Router), TypeScript
-* **Styling & Motion:** Tailwind CSS, Framer Motion, Lucide Icons
-* **Data Visualization & Storage:** Recharts, `date-fns`, browser `localStorage` + JSON export
+- **Framework & Language**: Next.js (App Router), TypeScript
+- **Styling & Icons**: Tailwind CSS, Lucide Icons
+- **Charts, Dates & Local Persistence**: Recharts, `date-fns`, browser `localStorage`, Web Crypto API (`AES-GCM` / `PBKDF2`)
 
 ## Run Locally
 ```bash
