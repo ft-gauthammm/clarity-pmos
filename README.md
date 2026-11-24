@@ -1,6 +1,6 @@
 # Clarity — PMOS Cognitive & Metabolic Companion
 
-**Live Demo:** [clarity-pmos.vercel.app](https://clarity-pmos.vercel.app) *(replace with your exact Vercel URL)*
+**Live Demo:** [clarity-pmos.vercel.app](https://clarity-pmos.vercel.app)
 
 Clarity is a privacy-first, offline-capable web application built around the May 2026 global consensus renaming PCOS to **PMOS (Polyendocrine Metabolic Ovarian Syndrome)** and recent UCSF *Neurology* research examining cognitive links (memory, attention, and brain fog).
 
