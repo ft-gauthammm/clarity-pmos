@@ -34,10 +34,10 @@ import CognitiveMiniTest from "@/components/CognitiveMiniTest";
 import StroopGame from "@/components/StroopGame";
 
 type HormonePhase =
-  | "Follicular"
-  | "Ovulatory"
-  | "Luteal"
-  | "Perimenopause / Irregular";
+  | "Period / Bleeding (Days 1–5)"
+  | "Post-Period / Mid-Cycle"
+  | "Pre-Period / PMS Window"
+  | "Perimenopause / Irregular / Not Sure";
 
 interface DailyEntry {
   id: string;
@@ -74,14 +74,35 @@ interface CognitiveRun {
   stroopScore?: number;
 }
 
-const HORMONE_PHASES: { label: HormonePhase; color: string; short: string }[] = [
-  { label: "Follicular", color: "#4D8B7A", short: "Follicular" },
-  { label: "Ovulatory", color: "#D99B26", short: "Ovulatory" },
-  { label: "Luteal", color: "#B86B4B", short: "Luteal" },
+const HORMONE_PHASES: {
+  label: HormonePhase;
+  color: string;
+  short: string;
+  hint: string;
+}[] = [
   {
-    label: "Perimenopause / Irregular",
+    label: "Period / Bleeding (Days 1–5)",
+    color: "#A84A32",
+    short: "Period / Bleeding",
+    hint: "Active bleeding days",
+  },
+  {
+    label: "Post-Period / Mid-Cycle",
+    color: "#4D8B7A",
+    short: "Post-Period / Mid",
+    hint: "After bleeding ends (~Days 6–15)",
+  },
+  {
+    label: "Pre-Period / PMS Window",
+    color: "#D99B26",
+    short: "Pre-Period / PMS",
+    hint: "Week or two before next period",
+  },
+  {
+    label: "Perimenopause / Irregular / Not Sure",
     color: "#7C858E",
-    short: "Perimeno / Irreg.",
+    short: "Irregular / Not Sure",
+    hint: "Skipped cycles, birth control, or unsure",
   },
 ];
 
@@ -412,6 +433,20 @@ export default function TrackPage() {
     setNewSymptomText("");
   };
 
+  // Gently suggests an observable stage when a cycle day number is typed, without forcing it
+  const handleCycleDayChange = (val: string) => {
+    setCycleDay(val);
+    const num = parseInt(val, 10);
+    if (isNaN(num) || num <= 0) return;
+    if (num <= 5) {
+      setHormonePhase("Period / Bleeding (Days 1–5)");
+    } else if (num <= 15) {
+      setHormonePhase("Post-Period / Mid-Cycle");
+    } else {
+      setHormonePhase("Pre-Period / PMS Window");
+    }
+  };
+
   const handleSaveEntry = (e: React.FormEvent) => {
     e.preventDefault();
     setFormError("");
@@ -524,20 +559,21 @@ export default function TrackPage() {
 
     const baseDate = todayIso ? new Date(`${todayIso}T12:00:00`) : new Date();
     const demoPhases: HormonePhase[] = [
-      "Follicular",
-      "Follicular",
-      "Ovulatory",
-      "Luteal",
-      "Luteal",
-      "Perimenopause / Irregular",
-      "Perimenopause / Irregular",
+      "Period / Bleeding (Days 1–5)",
+      "Post-Period / Mid-Cycle",
+      "Post-Period / Mid-Cycle",
+      "Pre-Period / PMS Window",
+      "Pre-Period / PMS Window",
+      "Perimenopause / Irregular / Not Sure",
+      "Perimenopause / Irregular / Not Sure",
     ];
     const demo: DailyEntry[] = Array.from({ length: 7 }).map((_, idx) => {
       const d = format(subDays(baseDate, 6 - idx), "yyyy-MM-dd");
       const prevShortSleep = idx === 1 || idx === 3 || idx === 5;
       const isShortSleepNight = idx === 0 || idx === 2 || idx === 4;
-      const isPerimeno = demoPhases[idx] === "Perimenopause / Irregular";
-      const isLuteal = demoPhases[idx] === "Luteal";
+      const isPerimeno =
+        demoPhases[idx] === "Perimenopause / Irregular / Not Sure";
+      const isPrePeriod = demoPhases[idx] === "Pre-Period / PMS Window";
 
       const scores: Record<string, number> = {};
       if (isPerimeno) {
@@ -545,7 +581,7 @@ export default function TrackPage() {
         scores["Night Sweats"] = 3;
         scores["Palpitations / Racing Heart"] = 2;
       }
-      if (isLuteal) {
+      if (isPrePeriod) {
         scores["Bloating"] = 4;
         scores["Breast Tenderness"] = 2;
       }
@@ -563,7 +599,7 @@ export default function TrackPage() {
         energy: prevShortSleep ? 4 : 7,
         mood: prevShortSleep ? 5 : 8,
         sleepHours: isShortSleepNight ? 5.5 : 7.8,
-        cycleDay: isPerimeno ? "N/A" : String(10 + idx * 3),
+        cycleDay: isPerimeno ? "N/A" : String(2 + idx * 4),
         hormonePhase: demoPhases[idx],
         symptoms: Object.keys(scores),
         symptomScores: scores,
@@ -809,7 +845,7 @@ export default function TrackPage() {
         stats[sym].daysLogged += 1;
         stats[sym].totalSeverity += sev;
 
-        const phaseLabel = e.hormonePhase || "Unspecified";
+        const phaseLabel = e.hormonePhase || "Not Specified";
         if (!stats[sym].phaseTotals[phaseLabel]) {
           stats[sym].phaseTotals[phaseLabel] = { sum: 0, count: 0 };
         }
@@ -916,58 +952,6 @@ export default function TrackPage() {
       }
     }
 
-    const afterLateCarb = nextDayPairs.filter((p) =>
-      p.prev.triggers?.includes("Late Meal / High Carb")
-    );
-    const afterNormalMeal = nextDayPairs.filter(
-      (p) => !p.prev.triggers?.includes("Late Meal / High Carb")
-    );
-    if (
-      afterLateCarb.length >= MIN_BUCKET &&
-      afterNormalMeal.length >= MIN_BUCKET
-    ) {
-      const lateFog = (
-        afterLateCarb.reduce((s, p) => s + p.next.brainFog, 0) /
-        afterLateCarb.length
-      ).toFixed(1);
-      const normalFog = (
-        afterNormalMeal.reduce((s, p) => s + p.next.brainFog, 0) /
-        afterNormalMeal.length
-      ).toFixed(1);
-      nudges.push(
-        `Next-day brain fog averages ${lateFog}/10 after "Late Meal / High Carb" vs. ${normalFog}/10 otherwise (n=${afterLateCarb.length} vs ${afterNormalMeal.length} pairs).`
-      );
-    }
-
-    if (entries.length >= 5) {
-      const phaseMap: Record<string, { totalFog: number; count: number }> = {};
-      entries.forEach((e) => {
-        if (!e.hormonePhase) return;
-        if (!phaseMap[e.hormonePhase]) {
-          phaseMap[e.hormonePhase] = { totalFog: 0, count: 0 };
-        }
-        phaseMap[e.hormonePhase].totalFog += e.brainFog;
-        phaseMap[e.hormonePhase].count += 1;
-      });
-      const rankedPhases = Object.entries(phaseMap)
-        .filter(([, d]) => d.count >= MIN_BUCKET)
-        .map(([phase, d]) => ({
-          phase,
-          avg: d.totalFog / d.count,
-          count: d.count,
-        }))
-        .sort((a, b) => b.avg - a.avg);
-
-      if (rankedPhases.length > 0 && Object.keys(phaseMap).length > 1) {
-        const top = rankedPhases[0];
-        nudges.push(
-          `Highest average brain fog (${top.avg.toFixed(
-            1
-          )}/10 across n=${top.count} days) clusters during your ${top.phase} phase.`
-        );
-      }
-    }
-
     const walkDays = entries.filter((e) =>
       e.triggers?.includes("Post-Meal Walk")
     );
@@ -986,17 +970,7 @@ export default function TrackPage() {
       );
     }
 
-    const triggerCounts: Record<string, number> = {};
-    entries.forEach((e) =>
-      (e.triggers || []).forEach((t) => {
-        triggerCounts[t] = (triggerCounts[t] || 0) + 1;
-      })
-    );
-    const topTriggers = Object.entries(triggerCounts)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 4);
-
-    return { avgFog, avgFocus, avgSleep, avgBp, nudges, topTriggers };
+    return { avgFog, avgFocus, avgSleep, avgBp, nudges };
   }, [entries]);
 
   const selectedSymptomDetail = useMemo(() => {
@@ -1195,11 +1169,14 @@ export default function TrackPage() {
               />
             </div>
 
-            {/* Hormone / Perimenopause State Selector */}
+            {/* Observable Cycle / Perimenopause State Selector (No Guessing Required) */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label className="block text-xs font-semibold">
-                  Cycle / Perimenopause State (optional)
+                  Cycle or Perimenopause Cue{" "}
+                  <span className="font-normal text-[#6E7570]">
+                    (optional — pick what&apos;s obvious or &ldquo;Not Sure&rdquo;)
+                  </span>
                 </label>
                 {hormonePhase && (
                   <button
@@ -1220,18 +1197,27 @@ export default function TrackPage() {
                       type="button"
                       aria-pressed={active}
                       onClick={() => setHormonePhase(active ? null : p.label)}
-                      className={`p-2 rounded-xl border text-left transition cursor-pointer flex items-center gap-2 ${
+                      className={`p-2.5 rounded-xl border text-left transition cursor-pointer flex flex-col justify-between gap-1 ${
                         active
                           ? "bg-[#1C1F1D] text-[#F7F5F0] border-[#1C1F1D]"
                           : "bg-[#F7F5F0] text-[#4F5551] border-[#D8D0C3] hover:border-[#1C1F1D]"
                       }`}
                     >
+                      <div className="flex items-center gap-1.5">
+                        <span
+                          className="w-2.5 h-2.5 rounded-full shrink-0"
+                          style={{ backgroundColor: p.color }}
+                        />
+                        <span className="text-[11px] font-semibold leading-tight">
+                          {p.short}
+                        </span>
+                      </div>
                       <span
-                        className="w-2.5 h-2.5 rounded-full shrink-0"
-                        style={{ backgroundColor: p.color }}
-                      />
-                      <span className="text-[11px] font-semibold leading-tight">
-                        {p.short}
+                        className={`text-[10px] leading-snug ${
+                          active ? "text-[#D5CEC2]" : "text-[#6E7570]"
+                        }`}
+                      >
+                        {p.hint}
                       </span>
                     </button>
                   );
@@ -1346,14 +1332,14 @@ export default function TrackPage() {
               </div>
               <div>
                 <label htmlFor="input-cycle" className="block text-[11px] font-semibold mb-1">
-                  Cycle Day
+                  Cycle Day (if known)
                 </label>
                 <input
                   id="input-cycle"
                   type="text"
                   value={cycleDay}
-                  onChange={(e) => setCycleDay(e.target.value)}
-                  placeholder="14 or N/A"
+                  onChange={(e) => handleCycleDayChange(e.target.value)}
+                  placeholder="e.g. 12 or N/A"
                   className="w-full rounded-xl bg-[#F7F5F0] border border-[#D8D0C3] px-3 py-2 text-xs font-medium"
                 />
               </div>
@@ -1709,7 +1695,7 @@ export default function TrackPage() {
                   On-Device Pattern &amp; Individual Symptom Engine
                 </p>
                 <h2 className="font-serif text-2xl font-normal">
-                  Symptom Trends &amp; Hormone Correlations ({entries.length} entries)
+                  Symptom Trends &amp; Cycle Correlations ({entries.length} entries)
                 </h2>
               </div>
 
@@ -1737,7 +1723,7 @@ export default function TrackPage() {
                       : "bg-[#F7F5F0] text-[#5A605C] border-[#D8D0C3]"
                   }`}
                 >
-                  <Layers className="w-3.5 h-3.5" /> Phase Overlay
+                  <Layers className="w-3.5 h-3.5" /> Cue Overlay
                 </button>
                 <button
                   type="button"
@@ -1774,7 +1760,7 @@ export default function TrackPage() {
                 </div>
                 <div>
                   <p className="text-[10px] font-semibold uppercase tracking-wider text-[#5A605C]">
-                    Highest Severity Phase
+                    Highest Severity Stage
                   </p>
                   <p className="font-serif text-sm font-medium text-[#1C1F1D]">
                     {selectedSymptomDetail.peakPhase}
@@ -1813,14 +1799,14 @@ export default function TrackPage() {
 
             {showPhaseOverlay && (
               <div className="flex flex-wrap items-center gap-4 text-[11px] font-semibold text-[#5A605C]">
-                <span>Hormone Phase Bands:</span>
+                <span>Cycle / Perimenopause Bands:</span>
                 {HORMONE_PHASES.map((p) => (
                   <span key={p.label} className="inline-flex items-center gap-1.5">
                     <span
                       className="w-2.5 h-2.5 rounded-xs inline-block"
                       style={{ backgroundColor: p.color, opacity: 0.45 }}
                     />
-                    {p.label}
+                    {p.short}
                   </span>
                 ))}
               </div>
@@ -1852,10 +1838,10 @@ export default function TrackPage() {
                         payload?: DailyEntry & { symptomRaw?: number | null };
                       }
                     ) => {
-                      if (name === "Hormone Phase") {
+                      if (name === "Cycle Cue") {
                         return [
-                          props?.payload?.hormonePhase || "Unspecified",
-                          "Phase",
+                          props?.payload?.hormonePhase || "Not Specified",
+                          "Stage",
                         ];
                       }
                       if (name === "Reaction (x100ms)") {
@@ -1876,7 +1862,7 @@ export default function TrackPage() {
                   {showPhaseOverlay && (
                     <Bar
                       dataKey="phaseBand"
-                      name="Hormone Phase"
+                      name="Cycle Cue"
                       barSize={26}
                       isAnimationActive={false}
                     >
@@ -2043,17 +2029,6 @@ export default function TrackPage() {
           </div>
         )}
 
-        {analytics && analytics.topTriggers && analytics.topTriggers.length > 0 && (
-          <div className="text-xs border border-gray-300 p-2.5 rounded">
-            <span className="font-bold uppercase tracking-wider mr-2">
-              Recurring Triggers Logged:
-            </span>
-            {analytics.topTriggers
-              .map(([name, count]) => `${name} (${count}d)`)
-              .join(" · ")}
-          </div>
-        )}
-
         {symptomBreakdown.length > 0 && (
           <div>
             <h2 className="font-bold text-xs uppercase tracking-wider mb-1.5">
@@ -2065,7 +2040,7 @@ export default function TrackPage() {
                   <th className="border border-gray-300 p-1.5 text-left">Symptom</th>
                   <th className="border border-gray-300 p-1.5">Frequency</th>
                   <th className="border border-gray-300 p-1.5">Avg Severity</th>
-                  <th className="border border-gray-300 p-1.5 text-left">Peak Hormone Phase</th>
+                  <th className="border border-gray-300 p-1.5 text-left">Peak Stage</th>
                   <th className="border border-gray-300 p-1.5 text-left">Top Co-Occurring Trigger</th>
                 </tr>
               </thead>
@@ -2096,7 +2071,7 @@ export default function TrackPage() {
             <thead>
               <tr className="bg-gray-100">
                 <th className="border border-gray-300 p-1.5 text-left">Date</th>
-                <th className="border border-gray-300 p-1.5 text-left">Phase</th>
+                <th className="border border-gray-300 p-1.5 text-left">Stage Cue</th>
                 <th className="border border-gray-300 p-1.5">Fog</th>
                 <th className="border border-gray-300 p-1.5">Focus</th>
                 <th className="border border-gray-300 p-1.5">BP</th>
