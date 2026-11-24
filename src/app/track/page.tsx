@@ -28,6 +28,7 @@ import {
   AlertCircle,
   X,
   HeartPulse,
+  Calendar,
 } from "lucide-react";
 import GamificationBar from "@/components/GamificationBar";
 import CognitiveMiniTest from "@/components/CognitiveMiniTest";
@@ -108,12 +109,12 @@ const HORMONE_PHASES: {
 
 const SYMPTOM_CATEGORIES: { category: string; items: string[] }[] = [
   {
-    category: "Cardiometabolic & Vascular",
+    category: "GI & Glycemic",
     items: [
-      "Palpitations / Racing Heart",
-      "Exertional Fatigue / Breathlessness",
-      "Dizziness / Lightheadedness",
-      "Swelling / Fluid Retention",
+      "Bloating",
+      "Afternoon Crash",
+      "Sugar Cravings",
+      "GI / Nausea",
     ],
   },
   {
@@ -128,12 +129,12 @@ const SYMPTOM_CATEGORIES: { category: string; items: string[] }[] = [
     ],
   },
   {
-    category: "GI & Glycemic",
+    category: "Cardiometabolic & Vascular",
     items: [
-      "Bloating",
-      "Afternoon Crash",
-      "Sugar Cravings",
-      "GI / Nausea",
+      "Palpitations / Racing Heart",
+      "Exertional Fatigue / Breathlessness",
+      "Dizziness / Lightheadedness",
+      "Swelling / Fluid Retention",
     ],
   },
   {
@@ -253,6 +254,10 @@ export default function TrackPage() {
   const [bestStroopScore, setBestStroopScore] = useState<number | null>(null);
   const [savedBanner, setSavedBanner] = useState(false);
   const [formError, setFormError] = useState("");
+
+  // Progressive disclosure toggles (keeps daily check-in calm)
+  const [showVitalsAndLabs, setShowVitalsAndLabs] = useState(false);
+  const [showAllLogs, setShowAllLogs] = useState(false);
 
   // Custom Symptom Catalog & Active Category Tab
   const [customSymptoms, setCustomSymptoms] = useState<string[]>([]);
@@ -387,6 +392,33 @@ export default function TrackPage() {
     );
   };
 
+  const handleLoadEntryIntoForm = (entry: DailyEntry) => {
+    setDate(entry.date);
+    setBrainFog(entry.brainFog);
+    setFocus(entry.focus);
+    setEnergy(entry.energy);
+    setMood(entry.mood);
+    setSleepHours(String(entry.sleepHours));
+    setCycleDay(entry.cycleDay && entry.cycleDay !== "N/A" ? entry.cycleDay : "");
+    setHormonePhase(entry.hormonePhase);
+    setSymptomScores({ ...(entry.symptomScores || {}) });
+    setTriggers([...(entry.triggers || [])]);
+    setBpSystolic(entry.bpSystolic ? String(entry.bpSystolic) : "");
+    setBpDiastolic(entry.bpDiastolic ? String(entry.bpDiastolic) : "");
+    setRestingHr(entry.restingHr ? String(entry.restingHr) : "");
+    setNotes(entry.notes || "");
+    if (entry.bpSystolic || entry.bpDiastolic || entry.restingHr) {
+      setShowVitalsAndLabs(true);
+    }
+    setFormError("");
+  };
+
+  const handleDeleteSingleEntry = (entryDate: string) => {
+    const ok = window.confirm(`Delete logged entry for ${entryDate}?`);
+    if (!ok) return;
+    persistEntries(entries.filter((e) => e.date !== entryDate));
+  };
+
   const handleSaveLipids = () => {
     const toSave = { ...lipids, date: lipids.date || todayIso };
     setLipids(toSave);
@@ -433,7 +465,6 @@ export default function TrackPage() {
     setNewSymptomText("");
   };
 
-  // Gently suggests an observable stage when a cycle day number is typed, without forcing it
   const handleCycleDayChange = (val: string) => {
     setCycleDay(val);
     const num = parseInt(val, 10);
@@ -634,7 +665,6 @@ export default function TrackPage() {
     persistStats(0, null, null, []);
   };
 
-  // Encrypted Export / Import Handlers
   const handleEncryptedExport = async () => {
     if (backupPass.trim().length < 8) {
       setBackupStatus("Use a passphrase of at least 8 characters.");
@@ -772,7 +802,6 @@ export default function TrackPage() {
     }
   };
 
-  // True Consecutive-Day Streak
   const streak = useMemo(() => {
     if (entries.length === 0 || !todayIso) return 0;
     const uniqueDates = Array.from(new Set(entries.map((e) => e.date))).sort(
@@ -796,7 +825,6 @@ export default function TrackPage() {
     return count;
   }, [entries, todayIso]);
 
-  // 14-Day Rolling Cognitive Baseline
   const baselines = useMemo(() => {
     const recentRuns = runs.slice(-14);
     const rxValues = recentRuns
@@ -817,7 +845,6 @@ export default function TrackPage() {
     return { baselineMs, baselineStroop };
   }, [runs]);
 
-  // Individual Symptom Breakdown
   const symptomBreakdown = useMemo(() => {
     const stats: Record<
       string,
@@ -887,7 +914,6 @@ export default function TrackPage() {
       );
   }, [entries]);
 
-  // Pattern Engine
   const analytics = useMemo(() => {
     if (entries.length === 0) return null;
     const avgFog = (
@@ -1038,11 +1064,11 @@ export default function TrackPage() {
 
       {/* SCREEN VIEW */}
       <main className="print:hidden max-w-5xl mx-auto px-6 py-10 space-y-10">
-        {/* Page Header + Utility Buttons */}
+        {/* Header + Utility Buttons */}
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-[#E3DDD2] pb-6">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#2F5D50]">
-              Daily Journal, Perimenopause &amp; Cardiometabolic Log
+              Daily Check-In &amp; Pattern Log
             </p>
             <h1 className="font-serif text-3xl sm:text-4xl font-normal mt-1">
               Log today&apos;s signals
@@ -1062,7 +1088,7 @@ export default function TrackPage() {
               onClick={() => setBackupOpen((v) => !v)}
               className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white border border-[#D5CEC2] hover:border-[#1C1F1D] text-xs font-semibold transition cursor-pointer"
             >
-              <Lock className="w-3.5 h-3.5 text-[#2F5D50]" /> Encrypted Backup
+              <Lock className="w-3.5 h-3.5 text-[#2F5D50]" /> Backup
             </button>
             {entries.length > 0 && (
               <button
@@ -1076,27 +1102,15 @@ export default function TrackPage() {
           </div>
         </div>
 
-        {/* Clinical Urgency Notice */}
-        <div className="bg-white/85 border border-[#E3DDD2] rounded-2xl px-5 py-3.5 flex items-start gap-3 text-xs text-[#4F5551]">
-          <HeartPulse className="w-4 h-4 text-[#A84A32] shrink-0 mt-0.5" />
-          <p className="leading-relaxed">
-            <strong>Cardiometabolic note:</strong> PMOS and perimenopause can
-            increase insulin resistance, blood pressure, and LDL cholesterol
-            risk. Track recurring trends here for your physician—seek urgent
-            medical care immediately for chest pain, severe shortness of breath,
-            or fainting.
-          </p>
-        </div>
-
-        {/* Encrypted Local Backup Drawer */}
+        {/* Encrypted Backup Drawer */}
         {backupOpen && (
           <div className="bg-white/95 border border-[#D5CEC2] rounded-2xl p-5 space-y-4">
             <div>
               <h2 className="font-serif text-lg font-medium flex items-center gap-2">
-                <Lock className="w-4 h-4 text-[#2F5D50]" /> AES-256 Encrypted Local Backup &amp; Restore
+                <Lock className="w-4 h-4 text-[#2F5D50]" /> AES-256 Encrypted Local Backup
               </h2>
               <p className="text-xs text-[#5A605C]">
-                Your history never touches a server. Use at least 8 characters for your passphrase.
+                Stored locally in your browser. Use at least 8 characters to export or import a backup.
               </p>
             </div>
 
@@ -1114,14 +1128,14 @@ export default function TrackPage() {
                 disabled={entries.length === 0}
                 className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-full bg-[#1C1F1D] hover:bg-[#2F5D50] disabled:opacity-40 text-[#F7F5F0] text-xs font-semibold transition cursor-pointer"
               >
-                <Download className="w-3.5 h-3.5" /> Export .clarity.enc
+                <Download className="w-3.5 h-3.5" /> Export .enc
               </button>
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-full bg-white border border-[#1C1F1D] text-xs font-semibold hover:bg-[#EFECE6] transition cursor-pointer"
               >
-                <Upload className="w-3.5 h-3.5" /> Import Backup
+                <Upload className="w-3.5 h-3.5" /> Import
               </button>
               <input
                 ref={fileInputRef}
@@ -1140,7 +1154,7 @@ export default function TrackPage() {
           </div>
         )}
 
-        {/* XP & Streak Bar */}
+        {/* Streak & XP Bar */}
         <GamificationBar
           xp={xp}
           streak={streak}
@@ -1149,16 +1163,15 @@ export default function TrackPage() {
           bestStroopScore={bestStroopScore}
         />
 
-        {/* Daily Check-In Form + Cognitive & Lipid Panel */}
+        {/* Calm Check-In Form + Cognitive Checks */}
         <div className="grid lg:grid-cols-12 gap-8 items-start">
-          {/* Left 7 Cols: Daily Check-In */}
           <form
             onSubmit={handleSaveEntry}
             className="lg:col-span-7 bg-white/85 border border-[#E3DDD2] rounded-2xl p-6 sm:p-7 space-y-6"
           >
             <div className="flex items-center justify-between border-b border-[#EFECE6] pb-4">
               <h2 className="font-serif text-xl font-medium">
-                Daily Signal &amp; Symptom Check-In
+                Quick Check-In
               </h2>
               <input
                 type="date"
@@ -1169,63 +1182,7 @@ export default function TrackPage() {
               />
             </div>
 
-            {/* Observable Cycle / Perimenopause State Selector (No Guessing Required) */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="block text-xs font-semibold">
-                  Cycle or Perimenopause Cue{" "}
-                  <span className="font-normal text-[#6E7570]">
-                    (optional — pick what&apos;s obvious or &ldquo;Not Sure&rdquo;)
-                  </span>
-                </label>
-                {hormonePhase && (
-                  <button
-                    type="button"
-                    onClick={() => setHormonePhase(null)}
-                    className="text-[11px] text-[#6E7570] hover:text-[#1C1F1D] cursor-pointer"
-                  >
-                    Clear
-                  </button>
-                )}
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {HORMONE_PHASES.map((p) => {
-                  const active = hormonePhase === p.label;
-                  return (
-                    <button
-                      key={p.label}
-                      type="button"
-                      aria-pressed={active}
-                      onClick={() => setHormonePhase(active ? null : p.label)}
-                      className={`p-2.5 rounded-xl border text-left transition cursor-pointer flex flex-col justify-between gap-1 ${
-                        active
-                          ? "bg-[#1C1F1D] text-[#F7F5F0] border-[#1C1F1D]"
-                          : "bg-[#F7F5F0] text-[#4F5551] border-[#D8D0C3] hover:border-[#1C1F1D]"
-                      }`}
-                    >
-                      <div className="flex items-center gap-1.5">
-                        <span
-                          className="w-2.5 h-2.5 rounded-full shrink-0"
-                          style={{ backgroundColor: p.color }}
-                        />
-                        <span className="text-[11px] font-semibold leading-tight">
-                          {p.short}
-                        </span>
-                      </div>
-                      <span
-                        className={`text-[10px] leading-snug ${
-                          active ? "text-[#D5CEC2]" : "text-[#6E7570]"
-                        }`}
-                      >
-                        {p.hint}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Sliders */}
+            {/* Core Sliders */}
             <div className="grid sm:grid-cols-2 gap-5">
               <div>
                 <div className="flex justify-between text-xs font-semibold mb-1.5">
@@ -1312,10 +1269,10 @@ export default function TrackPage() {
               </div>
             </div>
 
-            {/* Sleep, Cycle Day & Optional BP / Resting Heart Rate */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {/* Sleep & Cycle Day */}
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <label htmlFor="input-sleep" className="block text-[11px] font-semibold mb-1">
+                <label htmlFor="input-sleep" className="block text-xs font-semibold mb-1.5">
                   Sleep Hours *
                 </label>
                 <input
@@ -1326,12 +1283,12 @@ export default function TrackPage() {
                   max={20}
                   value={sleepHours}
                   onChange={(e) => setSleepHours(e.target.value)}
-                  placeholder="7.5"
-                  className="w-full rounded-xl bg-[#F7F5F0] border border-[#D8D0C3] px-3 py-2 text-xs font-medium"
+                  placeholder="e.g. 7.5"
+                  className="w-full rounded-xl bg-[#F7F5F0] border border-[#D8D0C3] px-3.5 py-2 text-sm font-medium"
                 />
               </div>
               <div>
-                <label htmlFor="input-cycle" className="block text-[11px] font-semibold mb-1">
+                <label htmlFor="input-cycle" className="block text-xs font-semibold mb-1.5">
                   Cycle Day (if known)
                 </label>
                 <input
@@ -1339,60 +1296,79 @@ export default function TrackPage() {
                   type="text"
                   value={cycleDay}
                   onChange={(e) => handleCycleDayChange(e.target.value)}
-                  placeholder="e.g. 12 or N/A"
-                  className="w-full rounded-xl bg-[#F7F5F0] border border-[#D8D0C3] px-3 py-2 text-xs font-medium"
-                />
-              </div>
-              <div>
-                <label htmlFor="input-bp" className="block text-[11px] font-semibold mb-1">
-                  BP (Sys / Dia)
-                </label>
-                <div className="flex items-center gap-1">
-                  <input
-                    id="input-bp"
-                    type="number"
-                    placeholder="120"
-                    value={bpSystolic}
-                    onChange={(e) => setBpSystolic(e.target.value)}
-                    className="w-1/2 rounded-xl bg-[#F7F5F0] border border-[#D8D0C3] px-2 py-2 text-xs font-medium"
-                  />
-                  <input
-                    aria-label="Diastolic BP"
-                    type="number"
-                    placeholder="80"
-                    value={bpDiastolic}
-                    onChange={(e) => setBpDiastolic(e.target.value)}
-                    className="w-1/2 rounded-xl bg-[#F7F5F0] border border-[#D8D0C3] px-2 py-2 text-xs font-medium"
-                  />
-                </div>
-              </div>
-              <div>
-                <label htmlFor="input-hr" className="block text-[11px] font-semibold mb-1">
-                  Resting HR
-                </label>
-                <input
-                  id="input-hr"
-                  type="number"
-                  placeholder="72 bpm"
-                  value={restingHr}
-                  onChange={(e) => setRestingHr(e.target.value)}
-                  className="w-full rounded-xl bg-[#F7F5F0] border border-[#D8D0C3] px-3 py-2 text-xs font-medium"
+                  placeholder="Optional (e.g. 12)"
+                  className="w-full rounded-xl bg-[#F7F5F0] border border-[#D8D0C3] px-3.5 py-2 text-sm font-medium"
                 />
               </div>
             </div>
 
-            {/* Categorized Individual Symptom Tracking with 1–5 Severity */}
+            {/* Observable Cycle / Perimenopause Cue (Optional, No Guessing Required) */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-semibold">
+                  Cycle or Perimenopause Cue{" "}
+                  <span className="font-normal text-[#6E7570]">
+                    (optional — pick what&apos;s obvious or &ldquo;Not Sure&rdquo;)
+                  </span>
+                </label>
+                {hormonePhase && (
+                  <button
+                    type="button"
+                    onClick={() => setHormonePhase(null)}
+                    className="text-[11px] text-[#6E7570] hover:text-[#1C1F1D] cursor-pointer"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {HORMONE_PHASES.map((p) => {
+                  const active = hormonePhase === p.label;
+                  return (
+                    <button
+                      key={p.label}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => setHormonePhase(active ? null : p.label)}
+                      className={`p-2 rounded-xl border text-left transition cursor-pointer flex flex-col justify-between gap-0.5 ${
+                        active
+                          ? "bg-[#1C1F1D] text-[#F7F5F0] border-[#1C1F1D]"
+                          : "bg-[#F7F5F0] text-[#4F5551] border-[#D8D0C3] hover:border-[#1C1F1D]"
+                      }`}
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <span
+                          className="w-2 h-2 rounded-full shrink-0"
+                          style={{ backgroundColor: p.color }}
+                        />
+                        <span className="text-[11px] font-semibold leading-tight">
+                          {p.short}
+                        </span>
+                      </div>
+                      <span
+                        className={`text-[10px] leading-snug ${
+                          active ? "text-[#D5CEC2]" : "text-[#6E7570]"
+                        }`}
+                      >
+                        {p.hint}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Individual Symptom Tracking with 1–5 Severity */}
             <div className="space-y-3 border-t border-[#EFECE6] pt-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <label className="block text-xs font-semibold">
-                  Individual Symptoms (tap to log &amp; rate 1–5)
+                  Symptoms (optional — tap to log &amp; rate 1–5)
                 </label>
                 <span className="text-[11px] text-[#6E7570]">
-                  {Object.keys(symptomScores).length} active
+                  {Object.keys(symptomScores).length} selected
                 </span>
               </div>
 
-              {/* Category Filter Tabs */}
               <div className="flex flex-wrap gap-1.5">
                 <button
                   type="button"
@@ -1403,10 +1379,7 @@ export default function TrackPage() {
                       : "bg-[#EFECE6] text-[#5A605C] hover:text-[#1C1F1D]"
                   }`}
                 >
-                  All (
-                  {SYMPTOM_CATEGORIES.flatMap((c) => c.items).length +
-                    customSymptoms.length}
-                  )
+                  All
                 </button>
                 {SYMPTOM_CATEGORIES.map((cat) => (
                   <button
@@ -1446,7 +1419,6 @@ export default function TrackPage() {
                 })}
               </div>
 
-              {/* Active Symptom Individual Severity Controls */}
               {Object.keys(symptomScores).length > 0 && (
                 <div className="space-y-2 pt-1">
                   {Object.entries(symptomScores).map(([sym, sev]) => (
@@ -1458,9 +1430,6 @@ export default function TrackPage() {
                         {sym}
                       </span>
                       <div className="flex items-center gap-1.5">
-                        <span className="text-[10px] uppercase tracking-wider text-[#6E7570] mr-1">
-                          Severity:
-                        </span>
                         {[1, 2, 3, 4, 5].map((lvl) => (
                           <button
                             key={lvl}
@@ -1489,7 +1458,6 @@ export default function TrackPage() {
                 </div>
               )}
 
-              {/* Add Custom Symptom */}
               <div className="flex items-center gap-2 pt-1">
                 <input
                   type="text"
@@ -1501,7 +1469,7 @@ export default function TrackPage() {
                       handleAddCustomSymptom();
                     }
                   }}
-                  placeholder="Add custom symptom (e.g., Chest Tightness, Mood Swings)..."
+                  placeholder="Add custom symptom..."
                   className="flex-1 rounded-xl bg-[#F7F5F0] border border-[#D8D0C3] px-3 py-1.5 text-xs"
                 />
                 <button
@@ -1514,10 +1482,10 @@ export default function TrackPage() {
               </div>
             </div>
 
-            {/* 1-Tap Triggers */}
+            {/* Triggers */}
             <div className="space-y-2">
               <label className="block text-xs font-semibold">
-                1-Tap Triggers &amp; Habits
+                Triggers &amp; Habits (optional)
               </label>
               <div className="flex flex-wrap gap-2">
                 {TRIGGER_OPTIONS.map((trig) => {
@@ -1544,16 +1512,137 @@ export default function TrackPage() {
             {/* Notes */}
             <div>
               <label htmlFor="input-notes" className="block text-xs font-semibold mb-1.5">
-                Field Notes (optional)
+                Notes (optional)
               </label>
               <textarea
                 id="input-notes"
                 rows={2}
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="Meals, medications, stress, or context for your doctor..."
+                placeholder="Any context for yourself or your doctor..."
                 className="w-full rounded-xl bg-[#F7F5F0] border border-[#D8D0C3] px-3.5 py-2 text-sm"
               />
+            </div>
+
+            {/* Collapsible Vitals & Lipid Labs (Tucked Away to Keep Daily Form Light) */}
+            <div className="border-t border-[#EFECE6] pt-4 space-y-3">
+              <button
+                type="button"
+                onClick={() => setShowVitalsAndLabs((v) => !v)}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#2F5D50] hover:underline cursor-pointer"
+              >
+                <HeartPulse className="w-3.5 h-3.5" />
+                {showVitalsAndLabs
+                  ? "Hide BP, Heart Rate & Lipid Labs"
+                  : "+ Optional BP, Heart Rate & Lipid Labs (for Doctor Brief)"}
+              </button>
+
+              {showVitalsAndLabs && (
+                <div className="p-4 rounded-xl bg-[#F7F5F0] border border-[#E3DDD2] space-y-4">
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <label htmlFor="input-bp-sys" className="block text-[11px] font-semibold mb-1">
+                        Systolic BP
+                      </label>
+                      <input
+                        id="input-bp-sys"
+                        type="number"
+                        placeholder="120"
+                        value={bpSystolic}
+                        onChange={(e) => setBpSystolic(e.target.value)}
+                        className="w-full rounded-lg bg-white border border-[#D8D0C3] px-2.5 py-1.5 text-xs"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="input-bp-dia" className="block text-[11px] font-semibold mb-1">
+                        Diastolic BP
+                      </label>
+                      <input
+                        id="input-bp-dia"
+                        type="number"
+                        placeholder="80"
+                        value={bpDiastolic}
+                        onChange={(e) => setBpDiastolic(e.target.value)}
+                        className="w-full rounded-lg bg-white border border-[#D8D0C3] px-2.5 py-1.5 text-xs"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="input-hr" className="block text-[11px] font-semibold mb-1">
+                        Resting HR
+                      </label>
+                      <input
+                        id="input-hr"
+                        type="number"
+                        placeholder="72 bpm"
+                        value={restingHr}
+                        onChange={(e) => setRestingHr(e.target.value)}
+                        className="w-full rounded-lg bg-white border border-[#D8D0C3] px-2.5 py-1.5 text-xs"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="border-t border-[#E3DDD2] pt-3 space-y-2.5">
+                    <p className="text-[11px] font-semibold text-[#1C1F1D]">
+                      Recent Lipid &amp; Glycemic Snapshot
+                    </p>
+                    <div className="grid grid-cols-2 gap-2.5">
+                      <input
+                        type="text"
+                        placeholder="LDL (e.g. 135 mg/dL)"
+                        value={lipids.ldl}
+                        onChange={(e) =>
+                          setLipids((p) => ({ ...p, ldl: e.target.value }))
+                        }
+                        className="rounded-lg bg-white border border-[#D8D0C3] px-2.5 py-1.5 text-xs"
+                      />
+                      <input
+                        type="text"
+                        placeholder="HDL (e.g. 48 mg/dL)"
+                        value={lipids.hdl}
+                        onChange={(e) =>
+                          setLipids((p) => ({ ...p, hdl: e.target.value }))
+                        }
+                        className="rounded-lg bg-white border border-[#D8D0C3] px-2.5 py-1.5 text-xs"
+                      />
+                      <input
+                        type="text"
+                        placeholder="Triglycerides (e.g. 165 mg/dL)"
+                        value={lipids.triglycerides}
+                        onChange={(e) =>
+                          setLipids((p) => ({
+                            ...p,
+                            triglycerides: e.target.value,
+                          }))
+                        }
+                        className="rounded-lg bg-white border border-[#D8D0C3] px-2.5 py-1.5 text-xs"
+                      />
+                      <input
+                        type="text"
+                        placeholder="HbA1c / Date (e.g. 5.8%)"
+                        value={lipids.hba1c}
+                        onChange={(e) =>
+                          setLipids((p) => ({ ...p, hba1c: e.target.value }))
+                        }
+                        className="rounded-lg bg-white border border-[#D8D0C3] px-2.5 py-1.5 text-xs"
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <button
+                        type="button"
+                        onClick={handleSaveLipids}
+                        className="px-3.5 py-1 rounded-full bg-[#1C1F1D] text-[#F7F5F0] text-[11px] font-semibold cursor-pointer"
+                      >
+                        Save Labs
+                      </button>
+                      {lipidsSavedMsg && (
+                        <span className="text-[11px] font-semibold text-[#2F5D50]">
+                          Saved for Doctor Brief
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {formError && (
@@ -1582,7 +1671,7 @@ export default function TrackPage() {
             </div>
           </form>
 
-          {/* Right 5 Cols: Brain Gym + Latest Lipid / Metabolic Snapshot */}
+          {/* Right 5 Cols: Brain Gym */}
           <div className="lg:col-span-5 space-y-6">
             <CognitiveMiniTest
               bestMs={bestReactionMs}
@@ -1595,94 +1684,6 @@ export default function TrackPage() {
               baselineScore={baselines.baselineStroop}
               onComplete={(sc) => recordCognitiveScore("stroop", sc)}
             />
-
-            <div className="bg-white/85 border border-[#E3DDD2] rounded-2xl p-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <HeartPulse className="w-4 h-4 text-[#2F5D50]" />
-                  <h3 className="font-serif text-lg font-medium">
-                    Latest Lipid &amp; Glycemic Labs
-                  </h3>
-                </div>
-                <span className="text-[11px] text-[#6E7570]">Doctor Brief</span>
-              </div>
-              <p className="text-xs text-[#5A605C] leading-relaxed">
-                Record recent bloodwork (mg/dL or %) so perimenopause cholesterol
-                and glycemic shifts print directly on your clinical summary.
-              </p>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[11px] font-semibold mb-1">
-                    LDL Cholesterol
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. 135 mg/dL"
-                    value={lipids.ldl}
-                    onChange={(e) =>
-                      setLipids((p) => ({ ...p, ldl: e.target.value }))
-                    }
-                    className="w-full rounded-xl bg-[#F7F5F0] border border-[#D8D0C3] px-3 py-1.5 text-xs"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-semibold mb-1">
-                    HDL Cholesterol
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. 48 mg/dL"
-                    value={lipids.hdl}
-                    onChange={(e) =>
-                      setLipids((p) => ({ ...p, hdl: e.target.value }))
-                    }
-                    className="w-full rounded-xl bg-[#F7F5F0] border border-[#D8D0C3] px-3 py-1.5 text-xs"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-semibold mb-1">
-                    Triglycerides
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. 165 mg/dL"
-                    value={lipids.triglycerides}
-                    onChange={(e) =>
-                      setLipids((p) => ({ ...p, triglycerides: e.target.value }))
-                    }
-                    className="w-full rounded-xl bg-[#F7F5F0] border border-[#D8D0C3] px-3 py-1.5 text-xs"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-semibold mb-1">
-                    HbA1c / Lab Date
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. 5.8% (Nov 2026)"
-                    value={lipids.hba1c}
-                    onChange={(e) =>
-                      setLipids((p) => ({ ...p, hba1c: e.target.value }))
-                    }
-                    className="w-full rounded-xl bg-[#F7F5F0] border border-[#D8D0C3] px-3 py-1.5 text-xs"
-                  />
-                </div>
-              </div>
-              <div className="flex items-center justify-between pt-1">
-                <button
-                  type="button"
-                  onClick={handleSaveLipids}
-                  className="px-4 py-1.5 rounded-full bg-[#1C1F1D] hover:bg-[#2F5D50] text-[#F7F5F0] text-xs font-semibold transition cursor-pointer"
-                >
-                  Save Lab Snapshot
-                </button>
-                {lipidsSavedMsg && (
-                  <span className="text-xs font-semibold text-[#2F5D50]">
-                    Added to Doctor Brief
-                  </span>
-                )}
-              </div>
-            </div>
           </div>
         </div>
 
@@ -1692,27 +1693,29 @@ export default function TrackPage() {
             <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#EFECE6] pb-4">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-[#2F5D50]">
-                  On-Device Pattern &amp; Individual Symptom Engine
+                  On-Device Pattern Engine
                 </p>
                 <h2 className="font-serif text-2xl font-normal">
-                  Symptom Trends &amp; Cycle Correlations ({entries.length} entries)
+                  Trends &amp; Correlations ({entries.length} entries)
                 </h2>
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
-                <select
-                  aria-label="Analyze Individual Symptom"
-                  value={selectedSymptomFilter}
-                  onChange={(e) => setSelectedSymptomFilter(e.target.value)}
-                  className="px-3 py-1.5 rounded-full text-xs font-semibold bg-[#F7F5F0] border border-[#D8D0C3] text-[#1C1F1D] cursor-pointer"
-                >
-                  <option value="ALL">Symptom Lens: Overview</option>
-                  {symptomBreakdown.map((s) => (
-                    <option key={s.name} value={s.name}>
-                      Isolate: {s.name} ({s.daysLogged}d)
-                    </option>
-                  ))}
-                </select>
+                {symptomBreakdown.length > 0 && (
+                  <select
+                    aria-label="Analyze Individual Symptom"
+                    value={selectedSymptomFilter}
+                    onChange={(e) => setSelectedSymptomFilter(e.target.value)}
+                    className="px-3 py-1.5 rounded-full text-xs font-semibold bg-[#F7F5F0] border border-[#D8D0C3] text-[#1C1F1D] cursor-pointer"
+                  >
+                    <option value="ALL">Symptom Lens: Overview</option>
+                    {symptomBreakdown.map((s) => (
+                      <option key={s.name} value={s.name}>
+                        Isolate: {s.name} ({s.daysLogged}d)
+                      </option>
+                    ))}
+                  </select>
+                )}
 
                 <button
                   type="button"
@@ -1793,7 +1796,7 @@ export default function TrackPage() {
               </div>
             ) : (
               <p className="text-xs text-[#5A605C] bg-[#F7F5F0] border border-[#E3DDD2] rounded-xl px-4 py-3">
-                Pattern comparisons appear once at least 3 days exist in both comparison buckets (e.g., 3 nights &lt;6.5h sleep and 3 nights &ge;6.5h sleep).
+                Pattern comparisons appear once at least 3 days exist in both comparison buckets (for example, 3 nights &lt;6.5h sleep and 3 nights &ge;6.5h sleep).
               </p>
             )}
 
@@ -1917,10 +1920,11 @@ export default function TrackPage() {
               </ResponsiveContainer>
             </div>
 
+            {/* Individual Symptom Breakdown Cards */}
             {symptomBreakdown.length > 0 && (
               <div className="border-t border-[#EFECE6] pt-5 space-y-3">
                 <p className="text-xs font-semibold uppercase tracking-wider text-[#5A605C]">
-                  Individual Symptom Breakdown (click any card to isolate on chart)
+                  Individual Symptom Breakdown (tap to isolate on chart)
                 </p>
                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {symptomBreakdown.map((item) => {
@@ -1955,14 +1959,7 @@ export default function TrackPage() {
                             isSelected ? "text-[#D5CEC2]" : "text-[#5A605C]"
                           }`}
                         >
-                          Logged {item.daysLogged}d · Peak: {item.peakPhase}
-                        </p>
-                        <p
-                          className={`text-[11px] ${
-                            isSelected ? "text-[#D5CEC2]" : "text-[#5A605C]"
-                          }`}
-                        >
-                          Top trigger: {item.topTrigger}
+                          {item.daysLogged}d · Peak: {item.peakPhase}
                         </p>
                       </button>
                     );
@@ -1970,6 +1967,56 @@ export default function TrackPage() {
                 </div>
               </div>
             )}
+
+            {/* Collapsible Logged Days List (Edit or Delete a Single Day) */}
+            <div className="border-t border-[#EFECE6] pt-4 space-y-3">
+              <button
+                type="button"
+                onClick={() => setShowAllLogs((v) => !v)}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#5A605C] hover:text-[#1C1F1D] cursor-pointer"
+              >
+                <Calendar className="w-3.5 h-3.5" />
+                {showAllLogs
+                  ? "Hide Logged Entries"
+                  : `Manage Logged Entries (${entries.length} days — edit or delete single day)`}
+              </button>
+
+              {showAllLogs && (
+                <div className="divide-y divide-[#EFECE6] rounded-xl border border-[#E3DDD2] bg-[#F7F5F0]/70">
+                  {[...entries].reverse().map((item) => (
+                    <div
+                      key={item.id}
+                      className="px-4 py-2.5 flex flex-wrap items-center justify-between gap-2 text-xs"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="font-semibold">{item.date}</span>
+                        <span className="text-[#5A605C]">
+                          Fog {item.brainFog}/10 · Focus {item.focus}/10 · Sleep{" "}
+                          {item.sleepHours}h
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleLoadEntryIntoForm(item)}
+                          className="px-2.5 py-1 rounded-lg bg-white border border-[#D8D0C3] hover:border-[#1C1F1D] font-medium cursor-pointer"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          aria-label={`Delete ${item.date}`}
+                          onClick={() => handleDeleteSingleEntry(item.date)}
+                          className="p-1 text-[#7A7F7B] hover:text-[#A84A32] cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </section>
         )}
       </main>
