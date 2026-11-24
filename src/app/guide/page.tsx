@@ -2,28 +2,29 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { format } from "date-fns";
 import { CheckCircle2, Circle, BookOpen, ExternalLink } from "lucide-react";
 
 const HABITS = [
   {
     id: "protein",
-    title: "25–30g Protein-First Breakfast",
-    why: "Higher-protein morning meals can help blunt post-meal glucose spikes and reduce mid-morning energy dips.",
+    title: "Protein-First Breakfast",
+    why: "Prioritizing protein at breakfast is commonly used in metabolic routines to help moderate post-meal glucose responses and mid-morning energy dips.",
   },
   {
     id: "walk",
-    title: "10-Minute Post-Meal Walk",
-    why: "Light muscle activity after meals supports skeletal muscle glucose uptake without requiring intense workouts.",
+    title: "Short Post-Meal Walk",
+    why: "Light movement after meals is associated with improved postprandial glucose handling in general and metabolic cohorts.",
   },
   {
     id: "sleep",
-    title: "Consistent 7.5–8h Sleep Window",
-    why: "Even short-term sleep restriction is associated with reduced insulin sensitivity and slower working memory the next day.",
+    title: "Consistent Sleep Window",
+    why: "Irregular or short sleep is associated with next-day fatigue and cognitive drag in general and PCOS/PMOS observational studies.",
   },
   {
     id: "hydration",
-    title: "500ml Water Before Morning Caffeine",
-    why: "Rehydrating before coffee may help minimize morning jitteriness and sharp mid-afternoon energy crashes.",
+    title: "Morning Water Before Caffeine",
+    why: "Starting the day with water is a low-friction hydration habit; individual responses to morning caffeine vary.",
   },
 ];
 
@@ -31,49 +32,63 @@ const LAB_PANELS = [
   {
     category: "Metabolic & Glycemic",
     tests: "Fasting Insulin, Fasting Glucose, HbA1c, Lipid Panel",
-    note: "Standard fasting glucose can look normal even when fasting insulin is elevated—ask your clinician if HOMA-IR or fasting insulin is appropriate.",
+    note: "Discuss with a clinician whether fasting glucose, HbA1c, lipid screening, or additional metabolic markers fit your personal history.",
   },
   {
     category: "Endocrine & Androgens",
     tests: "Total & Free Testosterone, SHBG, DHEA-S, LH / FSH",
-    note: "Helps clarify androgen excess and endocrine patterns behind irregular cycles, fatigue, or mood shifts.",
+    note: "Clinicians may evaluate androgen and endocrine markers alongside cycle history and symptoms to rule out other causes.",
   },
   {
     category: "Thyroid & Micronutrients",
     tests: "TSH, Free T4, Vitamin B12, Vitamin D (25-OH), Ferritin",
-    note: "Subclinical hypothyroidism, low ferritin, and B12/Vitamin D insufficiency frequently overlap with PMOS brain fog.",
+    note: "Clinicians often check thyroid function, iron/ferritin, and common micronutrient levels when evaluating persistent fatigue.",
   },
 ];
 
 const SOURCES = [
   {
     title: "Huddleston HG et al., Neurology (2024)",
+    url: "https://doi.org/10.1212/WNL.0000000000208104",
     detail:
-      "Observational cohort study reporting lower midlife cognitive performance (attention, memory, verbal fluency) in participants with PCOS.",
+      "Observational CARDIA cohort study (Huddleston, Jaswa, Casaletto, Neuhaus, Kim, Wellons, Launer, Yaffe) reporting lower midlife cognitive scores across memory, attention, and processing speed in participants with PCOS.",
   },
   {
-    title: "International Evidence-Based Guideline for the Assessment and Management of PCOS (2023/2026 Updates)",
+    title: "International Evidence-Based Guideline for PCOS (2023)",
+    url: "https://academic.oup.com/jcem/article/108/10/2447/7242360",
     detail:
-      "Clinical consensus guiding metabolic screening (oral glucose tolerance, HbA1c, lipids), lifestyle foundations, and mental/cognitive health awareness.",
+      "International evidence-based recommendations covering assessment, lifestyle support, metabolic risk evaluation, and psychological well-being in PCOS.",
   },
   {
-    title: "Ministry of Health & Family Welfare (MoHFW) & NFHS-5 India Reference Data",
+    title: "NFHS-5 India Factsheet (MoHFW)",
+    url: "https://main.mohfw.gov.in/",
     detail:
-      "Public health nutrition, anemia/ferritin screening, and non-communicable metabolic risk frameworks informing baseline micronutrient and glycemic checklists.",
+      "National family health survey data providing general population health context in India; not a clinical diagnostic protocol for PMOS.",
   },
 ];
 
-const HABIT_KEY = "clarity_pmos_habits_v5";
+const HABIT_KEY = "clarity_pmos_habits_v6";
 
 export default function GuidePage() {
+  const [todayKey, setTodayKey] = useState("");
   const [checked, setChecked] = useState<string[]>([]);
 
   useEffect(() => {
+    const key = format(new Date(), "yyyy-MM-dd");
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setTodayKey(key);
     try {
       const raw = localStorage.getItem(HABIT_KEY);
-      if (raw) setChecked(JSON.parse(raw));
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && parsed.date === key && Array.isArray(parsed.ids)) {
+          setChecked(parsed.ids);
+        } else {
+          setChecked([]);
+        }
+      }
     } catch {
-      // ignore
+      // ignore storage errors
     }
   }, []);
 
@@ -82,12 +97,12 @@ export default function GuidePage() {
       ? checked.filter((h) => h !== id)
       : [...checked, id];
     setChecked(next);
-    localStorage.setItem(HABIT_KEY, JSON.stringify(next));
+    const key = todayKey || format(new Date(), "yyyy-MM-dd");
+    localStorage.setItem(HABIT_KEY, JSON.stringify({ date: key, ids: next }));
   };
 
   return (
     <div className="min-h-screen bg-[#F7F5F0] text-[#1C1F1D]">
-      {/* Top Bar */}
       <header className="border-b border-[#E3DDD2] bg-[#F7F5F0]/90 backdrop-blur-sm sticky top-0 z-20">
         <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5">
@@ -115,7 +130,6 @@ export default function GuidePage() {
       </header>
 
       <main className="max-w-5xl mx-auto px-6 py-12 space-y-14">
-        {/* Header */}
         <section className="space-y-3 border-b border-[#E3DDD2] pb-8">
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#2F5D50]">
             Evidence-Aligned Action Toolkit
@@ -124,13 +138,12 @@ export default function GuidePage() {
             Supporting metabolic &amp; cognitive clarity
           </h1>
           <p className="text-sm text-[#5A605C] max-w-2xl leading-relaxed">
-            Practical, low-friction daily habits and clinical lab conversations
-            grounded in endocrine and public-health literature. Always review lab
-            orders and lifestyle changes with a qualified clinician.
+            General daily habits and discussion topics for medical visits. This
+            tool is educational only and does not replace individualized clinical
+            advice.
           </p>
         </section>
 
-        {/* Interactive Daily Habits Checklist */}
         <section className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="font-serif text-2xl font-normal">
@@ -148,6 +161,7 @@ export default function GuidePage() {
                 <button
                   key={habit.id}
                   type="button"
+                  aria-pressed={done}
                   onClick={() => toggleHabit(habit.id)}
                   className={`text-left p-5 rounded-2xl border transition cursor-pointer flex items-start gap-3.5 ${
                     done
@@ -174,7 +188,6 @@ export default function GuidePage() {
           </div>
         </section>
 
-        {/* Clinical Lab Guide */}
         <section className="space-y-4">
           <h2 className="font-serif text-2xl font-normal">
             Lab Panels to Discuss With Your Doctor
@@ -200,16 +213,18 @@ export default function GuidePage() {
           </div>
         </section>
 
-        {/* Clinical References & Citations */}
         <section className="bg-white/85 border border-[#E3DDD2] rounded-2xl p-6 sm:p-8 space-y-4">
           <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#2F5D50]">
-            <BookOpen className="w-3.5 h-3.5" /> Clinical References &amp; Public Health Grounding
+            <BookOpen className="w-3.5 h-3.5" /> Reference Sources
           </div>
           <div className="grid md:grid-cols-3 gap-4">
             {SOURCES.map((src) => (
-              <div
+              <a
                 key={src.title}
-                className="p-4 rounded-xl bg-[#F7F5F0] border border-[#E3DDD2] space-y-1.5"
+                href={src.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-4 rounded-xl bg-[#F7F5F0] border border-[#E3DDD2] hover:border-[#1C1F1D] transition space-y-1.5 block"
               >
                 <p className="font-serif text-sm font-medium text-[#1C1F1D] flex items-start justify-between gap-2">
                   <span>{src.title}</span>
@@ -218,11 +233,12 @@ export default function GuidePage() {
                 <p className="text-xs text-[#5A605C] leading-relaxed">
                   {src.detail}
                 </p>
-              </div>
+              </a>
             ))}
           </div>
           <p className="text-[11px] text-[#6E7570] pt-1">
-            Medical Disclaimer: Clarity provides educational health information and personal tracking tools only. It does not provide medical advice, diagnosis, or treatment recommendations.
+            Disclaimer: Educational information and personal logging only; not
+            medical diagnosis or treatment advice.
           </p>
         </section>
       </main>
