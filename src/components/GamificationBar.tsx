@@ -1,121 +1,115 @@
 "use client";
 
-import { Flame, Award, Sparkles, Moon, Brain, CheckCircle2 } from "lucide-react";
-import { DailyLog } from "../types";
+import { Award, Flame, Sparkles, Trophy } from "lucide-react";
 
-interface Props {
-  logs: DailyLog[];
-  stroopBest: number;
+interface BadgeDef {
+  id: string;
+  label: string;
+  desc: string;
+  unlocked: boolean;
 }
 
-export default function GamificationBar({ logs, stroopBest }: Props) {
-  // XP Calculation: 20 XP per log + 30 XP per Mini-Test + 5 XP per Stroop best point
-  const testCount = logs.filter((l) => l.cognitiveScore !== undefined).length;
-  const xp = logs.length * 20 + testCount * 30 + stroopBest * 5;
+export default function GamificationBar({
+  xp,
+  streak,
+  logsCount,
+  bestReactionMs,
+  bestStroopScore,
+}: {
+  xp: number;
+  streak: number;
+  logsCount: number;
+  bestReactionMs: number | null;
+  bestStroopScore: number | null;
+}) {
   const level = Math.floor(xp / 100) + 1;
-  const levelProgress = xp % 100;
+  const progress = xp % 100;
 
-  // Badges
-  const badges = [
+  const badges: BadgeDef[] = [
     {
-      id: "first",
-      label: "First Spark",
-      desc: "Log 1 day",
-      unlocked: logs.length >= 1,
-      icon: Sparkles,
+      id: "first-log",
+      label: "First Entry",
+      desc: "Logged your first check-in",
+      unlocked: logsCount >= 1,
     },
     {
-      id: "pattern",
-      label: "Pattern Seeker",
-      desc: "3+ days logged",
-      unlocked: logs.length >= 3,
-      icon: Flame,
+      id: "streak-3",
+      label: "3-Day Rhythm",
+      desc: "Logged 3 days in a row",
+      unlocked: streak >= 3,
     },
     {
-      id: "sharp",
-      label: "Sharp Mind",
-      desc: "80+ Mini-Test or 10+ Stroop",
-      unlocked:
-        logs.some((l) => (l.cognitiveScore ?? 0) >= 80) || stroopBest >= 10,
-      icon: Brain,
+      id: "reflex",
+      label: "Quick Recall",
+      desc: "Reaction under 400ms",
+      unlocked: bestReactionMs !== null && bestReactionMs < 400,
     },
     {
-      id: "sleep",
-      label: "Sleep Scientist",
-      desc: "3+ days of 7.5h sleep",
-      unlocked: logs.filter((l) => (l.sleepHours ?? 0) >= 7.5).length >= 3,
-      icon: Moon,
+      id: "stroop",
+      label: "Sharp Focus",
+      desc: "8+ on Stroop Sprint",
+      unlocked: bestStroopScore !== null && bestStroopScore >= 8,
     },
   ];
 
-  const unlockedCount = badges.filter((b) => b.unlocked).length;
-
   return (
-    <div className="p-5 sm:p-6 rounded-[2rem] bg-gradient-to-br from-[#3b0764] to-[#220e38] text-white border-2 border-violet-400/40 shadow-2xl space-y-4">
-      {/* Top Row: Level + XP Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className="bg-white/85 border border-[#E3DDD2] rounded-2xl p-5 space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-2xl bg-[#7c3aed] border-2 border-violet-300 flex flex-col items-center justify-center shadow-lg">
-            <span className="text-[9px] font-black uppercase leading-none text-violet-200">
-              LVL
-            </span>
-            <span className="text-lg font-black leading-none">{level}</span>
+          <div className="w-10 h-10 rounded-xl bg-[#2F5D50]/10 border border-[#2F5D50]/20 flex items-center justify-center text-[#2F5D50]">
+            <Trophy className="w-5 h-5" />
           </div>
           <div>
-            <div className="text-xs font-black uppercase tracking-wider text-violet-200 flex items-center gap-1.5">
-              <Award className="w-4 h-4 text-amber-300" />
-              Clarity Explorer · {xp} XP
+            <div className="flex items-center gap-2">
+              <span className="font-serif text-lg font-medium text-[#1C1F1D]">
+                Level {level}
+              </span>
+              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-[#EFECE6] text-[#4F5551]">
+                {xp} XP
+              </span>
             </div>
-            <div className="text-[11px] text-violet-300/80">
-              {100 - levelProgress} XP to Level {level + 1} · {unlockedCount}/4 Badges
-            </div>
+            <p className="text-xs text-[#6E7570]">
+              {100 - progress} XP to Level {level + 1}
+            </p>
           </div>
         </div>
 
-        <div className="px-3 py-1.5 rounded-full bg-white/10 border border-violet-400/30 text-xs font-black flex items-center gap-1.5">
-          <Flame className="w-4 h-4 text-amber-300" />
-          {logs.length} {logs.length === 1 ? "Day" : "Days"} Tracked
+        <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#F7F5F0] border border-[#E3DDD2] text-xs font-semibold text-[#1C1F1D]">
+          <Flame className="w-3.5 h-3.5 text-[#2F5D50]" />
+          <span>{streak} day streak</span>
         </div>
       </div>
 
-      {/* XP Progress Bar */}
-      <div className="h-2 w-full rounded-full bg-white/10 overflow-hidden">
+      {/* Progress Bar */}
+      <div className="w-full h-2 rounded-full bg-[#EFECE6] overflow-hidden">
         <div
-          className="h-full rounded-full bg-gradient-to-r from-violet-400 to-fuchsia-400 transition-all duration-500"
-          style={{ width: `${levelProgress}%` }}
+          className="h-full bg-[#2F5D50] transition-all duration-500 rounded-full"
+          style={{ width: `${progress}%` }}
         />
       </div>
 
-      {/* 4 Unlockable Badges */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-        {badges.map((b) => {
-          const Icon = b.icon;
-          return (
-            <div
-              key={b.id}
-              className={`p-3 rounded-2xl border transition ${
-                b.unlocked
-                  ? "bg-white/15 border-violet-300/50 text-white"
-                  : "bg-black/20 border-white/10 text-violet-300/40"
-              }`}
-            >
-              <div className="flex items-center justify-between mb-1">
-                <Icon
-                  className={`w-4 h-4 ${
-                    b.unlocked ? "text-amber-300" : "text-violet-400/30"
-                  }`}
-                />
-                {b.unlocked && (
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-300" />
-                )}
-              </div>
-              <div className="text-[11px] font-black uppercase leading-tight">
-                {b.label}
-              </div>
-              <div className="text-[10px] opacity-75 mt-0.5">{b.desc}</div>
+      {/* Badges */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+        {badges.map((b) => (
+          <div
+            key={b.id}
+            className={`p-2.5 rounded-xl border text-left transition ${
+              b.unlocked
+                ? "bg-[#F7F5F0] border-[#2F5D50]/40 text-[#1C1F1D]"
+                : "bg-[#FAF9F6] border-[#EAE4D9] text-[#9AA09C] opacity-65"
+            }`}
+          >
+            <div className="flex items-center gap-1.5 text-xs font-semibold">
+              {b.unlocked ? (
+                <Sparkles className="w-3.5 h-3.5 text-[#2F5D50] shrink-0" />
+              ) : (
+                <Award className="w-3.5 h-3.5 shrink-0" />
+              )}
+              <span className="truncate">{b.label}</span>
             </div>
-          );
-        })}
+            <p className="text-[11px] mt-0.5 leading-tight">{b.desc}</p>
+          </div>
+        ))}
       </div>
     </div>
   );

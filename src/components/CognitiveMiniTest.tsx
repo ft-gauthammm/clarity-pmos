@@ -1,251 +1,157 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { Brain, Zap, RotateCcw, CheckCircle2, Play } from "lucide-react";
+import { useState, useRef } from "react";
+import { Brain, Play, RotateCcw } from "lucide-react";
 
-interface Props {
-  onComplete: (score: number, avgReactionMs: number) => void;
-}
+const WORDS = ["EMBER", "CEDAR", "RIVER", "CLOUD", "STONE", "FLORA", "LUNAR", "PULSE"];
 
-type Stage = "idle" | "reaction_wait" | "reaction_go" | "memory_show" | "memory_input" | "done";
+export default function CognitiveMiniTest({
+  bestMs,
+  onComplete,
+}: {
+  bestMs: number | null;
+  onComplete: (reactionMs: number, memoryCorrect: boolean) => void;
+}) {
+  const [stage, setStage] = useState<"idle" | "memorize" | "wait" | "click" | "recall" | "done">("idle");
+  const [targetWord, setTargetWord] = useState("");
+  const [options, setOptions] = useState<string[]>([]);
+  const [reactionMs, setReactionMs] = useState<number | null>(null);
+  const [memoryCorrect, setMemoryCorrect] = useState<boolean | null>(null);
+  const startRef = useRef<number>(0);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-export default function CognitiveMiniTest({ onComplete }: Props) {
-  const [stage, setStage] = useState<Stage>("idle");
+  const startTest = () => {
+    const picked = WORDS[Math.floor(Math.random() * WORDS.length)];
+    const distractors = WORDS.filter((w) => w !== picked)
+      .sort(() => Math.random() - 0.5)
+      .slice(0, 3);
+    setTargetWord(picked);
+    setOptions([picked, ...distractors].sort(() => Math.random() - 0.5));
+    setReactionMs(null);
+    setMemoryCorrect(null);
+    setStage("memorize");
 
-  // Part 1: Reaction Speed (3 trials)
-  const [trial, setTrial] = useState(0);
-  const [reactions, setReactions] = useState<number[]>([]);
-  const [tooEarly, setTooEarly] = useState(false);
-  const goTimeRef = useRef<number>(0);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Part 2: Working Memory (4-tile sequence on 3x3 grid)
-  const [sequence, setSequence] = useState<number[]>([]);
-  const [litTile, setLitTile] = useState<number | null>(null);
-  const [userSeq, setUserSeq] = useState<number[]>([]);
-
-  // Final Results
-  const [finalScore, setFinalScore] = useState<number | null>(null);
-  const [avgMs, setAvgMs] = useState<number | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, []);
-
-  const startReactionTrial = (nextTrial: number) => {
-    setTooEarly(false);
-    setStage("reaction_wait");
-    const delay = 1000 + Math.random() * 1800; // 1.0s - 2.8s
     timerRef.current = setTimeout(() => {
-      goTimeRef.current = performance.now();
-      setStage("reaction_go");
-    }, delay);
-    setTrial(nextTrial);
+      setStage("wait");
+      const delay = 1200 + Math.random() * 1800;
+      timerRef.current = setTimeout(() => {
+        startRef.current = performance.now();
+        setStage("click");
+      }, delay);
+    }, 2200);
   };
 
-  const handleStart = () => {
-    setReactions([]);
-    setUserSeq([]);
-    setFinalScore(null);
-    setAvgMs(null);
-    startReactionTrial(1);
+  const handleTap = () => {
+    if (stage !== "click") return;
+    const elapsed = Math.round(performance.now() - startRef.current);
+    setReactionMs(elapsed);
+    setStage("recall");
   };
 
-  const handleReactionTap = () => {
-    if (stage === "reaction_wait") {
-      if (timerRef.current) clearTimeout(timerRef.current);
-      setTooEarly(true);
-      timerRef.current = setTimeout(() => startReactionTrial(trial), 900);
-      return;
-    }
-
-    if (stage === "reaction_go") {
-      const ms = Math.round(performance.now() - goTimeRef.current);
-      const updated = [...reactions, ms];
-      setReactions(updated);
-
-      if (trial < 3) {
-        startReactionTrial(trial + 1);
-      } else {
-        startMemoryRound(updated);
-      }
-    }
-  };
-
-  const startMemoryRound = (completedReactions: number[]) => {
-    // Generate 4 random tiles (0-8)
-    const seq: number[] = [];
-    while (seq.length < 4) {
-      const r = Math.floor(Math.random() * 9);
-      if (seq[seq.length - 1] !== r) seq.push(r);
-    }
-    setSequence(seq);
-    setUserSeq([]);
-    setStage("memory_show");
-
-    // Flash sequence one by one
-    seq.forEach((tile, idx) => {
-      setTimeout(() => setLitTile(tile), idx * 650 + 350);
-      setTimeout(() => setLitTile(null), idx * 650 + 800);
-    });
-
-    setTimeout(() => {
-      setStage("memory_input");
-    }, seq.length * 650 + 450);
-
-    // Keep reactions accessible
-    setReactions(completedReactions);
-  };
-
-  const handleTileTap = (tileIdx: number) => {
-    if (stage !== "memory_input") return;
-    const nextUserSeq = [...userSeq, tileIdx];
-    setUserSeq(nextUserSeq);
-
-    if (nextUserSeq.length === sequence.length) {
-      // Score calculation: 50 pts Reaction + 50 pts Memory
-      const meanMs = Math.round(
-        reactions.reduce((a, b) => a + b, 0) / Math.max(reactions.length, 1)
-      );
-      const reactionPts = Math.max(10, Math.min(50, Math.round(50 - (meanMs - 220) / 10)));
-
-      let correctTiles = 0;
-      sequence.forEach((val, i) => {
-        if (nextUserSeq[i] === val) correctTiles++;
-      });
-      const memoryPts = Math.round((correctTiles / sequence.length) * 50);
-
-      const total = Math.max(15, Math.min(100, reactionPts + memoryPts));
-      setAvgMs(meanMs);
-      setFinalScore(total);
-      setStage("done");
-      onComplete(total, meanMs);
+  const handleRecall = (choice: string) => {
+    const ok = choice === targetWord;
+    setMemoryCorrect(ok);
+    setStage("done");
+    if (reactionMs !== null) {
+      onComplete(reactionMs, ok);
     }
   };
 
   return (
-    <div className="p-6 sm:p-7 rounded-[2rem] bg-[#e9d5ff] border-2 border-violet-300 shadow-2xl">
-      <div className="flex items-center justify-between gap-2 mb-3">
-        <h2 className="text-base sm:text-lg font-black uppercase tracking-tight text-[#2e1065] flex items-center gap-2">
-          <Brain className="w-5 h-5 text-violet-700" />
-          20-Sec Brain-Fog Mini-Test
-        </h2>
-        <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-[#3b0764] text-white">
-          Objective Score
-        </span>
+    <div className="bg-white/85 border border-[#E3DDD2] rounded-2xl p-6 space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Brain className="w-4 h-4 text-[#2F5D50]" />
+          <h3 className="font-serif text-lg font-medium text-[#1C1F1D]">
+            20-Sec Reaction &amp; Recall
+          </h3>
+        </div>
+        {bestMs !== null && (
+          <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-[#EFECE6] text-[#4F5551]">
+            Best: {bestMs}ms
+          </span>
+        )}
       </div>
 
-      {/* IDLE */}
       {stage === "idle" && (
-        <div className="bg-white/90 rounded-2xl p-5 border-2 border-violet-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div>
-            <p className="text-xs sm:text-sm font-bold text-[#2e1065]">
-              Measure your real-time Attention &amp; Working Memory
-            </p>
-            <p className="text-xs text-violet-950/70 mt-1">
-              Part 1: 3 quick reaction taps · Part 2: 4-tile sequence recall. Auto-attaches to today&apos;s log.
-            </p>
-          </div>
+        <div className="space-y-3">
+          <p className="text-xs sm:text-sm text-[#5A605C] leading-relaxed">
+            Memorize a 5-letter word, tap as soon as the card turns botanical green,
+            then recall the word. (+25 XP)
+          </p>
           <button
             type="button"
-            onClick={handleStart}
-            className="shrink-0 flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-[#7c3aed] hover:bg-[#6d28d9] text-white text-xs font-black uppercase tracking-wider transition shadow-md cursor-pointer"
+            onClick={startTest}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#1C1F1D] hover:bg-[#2F5D50] text-[#F7F5F0] text-xs font-semibold transition cursor-pointer"
           >
-            <Play className="w-3.5 h-3.5 fill-current" /> Start Test
+            <Play className="w-3.5 h-3.5" /> Start Check
           </button>
         </div>
       )}
 
-      {/* PART 1: REACTION SPEED */}
-      {(stage === "reaction_wait" || stage === "reaction_go") && (
+      {stage === "memorize" && (
+        <div className="p-6 rounded-xl bg-[#F7F5F0] border border-[#E3DDD2] text-center space-y-1">
+          <p className="text-[11px] uppercase tracking-wider text-[#6E7570] font-semibold">
+            Remember this word
+          </p>
+          <p className="font-serif text-3xl font-semibold tracking-widest text-[#1C1F1D]">
+            {targetWord}
+          </p>
+        </div>
+      )}
+
+      {stage === "wait" && (
+        <div className="p-6 rounded-xl bg-[#EFECE6] border border-[#D8D0C3] text-center">
+          <p className="font-serif text-base text-[#5A605C]">
+            Wait for green...
+          </p>
+        </div>
+      )}
+
+      {stage === "click" && (
         <button
           type="button"
-          onClick={handleReactionTap}
-          className={`w-full h-44 rounded-2xl border-2 flex flex-col items-center justify-center text-center transition cursor-pointer select-none ${
-            stage === "reaction_go"
-              ? "bg-emerald-500 border-emerald-700 text-white scale-[1.01]"
-              : tooEarly
-              ? "bg-rose-500 border-rose-700 text-white"
-              : "bg-[#3b0764] border-violet-900 text-violet-100"
-          }`}
+          onClick={handleTap}
+          className="w-full p-6 rounded-xl bg-[#2F5D50] text-[#F7F5F0] text-center font-serif text-xl font-medium cursor-pointer transition"
         >
-          <span className="text-[10px] font-black uppercase tracking-widest opacity-80 mb-2">
-            Part 1 of 2 · Attention ({trial}/3)
-          </span>
-          {stage === "reaction_go" ? (
-            <span className="text-3xl font-black uppercase flex items-center gap-2">
-              <Zap className="w-7 h-7 fill-current" /> TAP NOW!
-            </span>
-          ) : tooEarly ? (
-            <span className="text-xl font-black uppercase">Too early! Wait for green...</span>
-          ) : (
-            <span className="text-xl font-black uppercase">Wait for Green...</span>
-          )}
+          Tap Now!
         </button>
       )}
 
-      {/* PART 2: WORKING MEMORY */}
-      {(stage === "memory_show" || stage === "memory_input") && (
-        <div className="bg-white/90 rounded-2xl p-5 border-2 border-violet-200 text-center">
-          <div className="text-[10px] font-black uppercase tracking-widest text-violet-700 mb-1">
-            Part 2 of 2 · Working Memory
-          </div>
-          <p className="text-xs font-bold text-[#2e1065] mb-4">
-            {stage === "memory_show"
-              ? "Watch the flashing pattern..."
-              : `Tap the 4 tiles in order (${userSeq.length}/4)`}
+      {stage === "recall" && (
+        <div className="space-y-3">
+          <p className="text-xs font-semibold uppercase tracking-wider text-[#6E7570]">
+            Reaction: {reactionMs}ms — Which word appeared?
           </p>
-
-          <div className="grid grid-cols-3 gap-2.5 max-w-[210px] mx-auto">
-            {Array.from({ length: 9 }).map((_, idx) => {
-              const isLit = litTile === idx;
-              const isPicked = stage === "memory_input" && userSeq.includes(idx);
-              return (
-                <button
-                  key={idx}
-                  type="button"
-                  disabled={stage === "memory_show"}
-                  onClick={() => handleTileTap(idx)}
-                  className={`aspect-square rounded-xl border-2 transition cursor-pointer ${
-                    isLit
-                      ? "bg-[#7c3aed] border-[#2e1065] scale-105 shadow-lg"
-                      : isPicked
-                      ? "bg-[#c4b5fd] border-[#5b21b6]"
-                      : "bg-[#f5f3ff] border-violet-200 hover:border-violet-400"
-                  }`}
-                />
-              );
-            })}
+          <div className="grid grid-cols-2 gap-2">
+            {options.map((opt) => (
+              <button
+                key={opt}
+                type="button"
+                onClick={() => handleRecall(opt)}
+                className="py-2.5 px-3 rounded-xl bg-[#F7F5F0] hover:bg-[#2F5D50] hover:text-[#F7F5F0] border border-[#E3DDD2] text-xs font-semibold tracking-wider transition cursor-pointer"
+              >
+                {opt}
+              </button>
+            ))}
           </div>
         </div>
       )}
 
-      {/* DONE */}
-      {stage === "done" && finalScore !== null && (
-        <div className="bg-white rounded-2xl p-5 border-2 border-violet-300 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-[#3b0764] text-white flex flex-col items-center justify-center shrink-0">
-              <span className="text-xl font-black leading-none">{finalScore}</span>
-              <span className="text-[9px] uppercase font-bold text-violet-300">/100</span>
-            </div>
-            <div>
-              <div className="text-xs font-black uppercase text-emerald-700 flex items-center gap-1">
-                <CheckCircle2 className="w-3.5 h-3.5" /> Attached to Today&apos;s Log
-              </div>
-              <p className="text-xs font-medium text-[#2e1065]/80 mt-0.5">
-                Avg Reaction: <strong>{avgMs} ms</strong> · Click <strong>Save Daily Log</strong> on the left to store it.
-              </p>
-            </div>
+      {stage === "done" && (
+        <div className="p-4 rounded-xl bg-[#F7F5F0] border border-[#E3DDD2] flex items-center justify-between gap-4">
+          <div>
+            <p className="font-serif text-base font-medium text-[#1C1F1D]">
+              {reactionMs}ms · {memoryCorrect ? "Word recalled" : `Word was ${targetWord}`}
+            </p>
+            <p className="text-xs text-[#2F5D50] font-medium">+25 XP logged</p>
           </div>
-
           <button
             type="button"
-            onClick={handleStart}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-violet-100 hover:bg-violet-200 text-[#2e1065] text-xs font-black uppercase tracking-wider transition cursor-pointer"
+            onClick={startTest}
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-[#D5CEC2] bg-white text-xs font-semibold hover:border-[#1C1F1D] transition cursor-pointer"
           >
-            <RotateCcw className="w-3.5 h-3.5" /> Retake
+            <RotateCcw className="w-3.5 h-3.5" /> Again
           </button>
         </div>
       )}
