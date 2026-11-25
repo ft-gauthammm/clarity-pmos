@@ -34,6 +34,7 @@ import GamificationBar from "@/components/GamificationBar";
 import CognitiveMiniTest from "@/components/CognitiveMiniTest";
 import StroopGame from "@/components/StroopGame";
 import ThemeToggle from "@/components/ThemeToggle";
+import CareCompanion from "@/components/CareCompanion";
 
 type HormonePhase =
   | "Period / Bleeding (Days 1–5)"
@@ -1033,6 +1034,8 @@ export default function TrackPage() {
   const hasLipidValues =
     lipids.ldl || lipids.hdl || lipids.triglycerides || lipids.hba1c;
 
+  const latestEntry = entries[entries.length - 1];
+
   return (
     <div className="min-h-screen bg-[#F7F5F0] dark:bg-[#111412] text-[#1C1F1D] dark:text-[#ECEAE4] transition-colors">
       {/* Top Bar */}
@@ -1163,6 +1166,15 @@ export default function TrackPage() {
           logsCount={entries.length}
           bestReactionMs={bestReactionMs}
           bestStroopScore={bestStroopScore}
+        />
+
+        {/* Interactive PMOS Care Companion */}
+        <CareCompanion
+          loggedToday={Boolean(todayIso && entries.some((e) => e.date === todayIso))}
+          cognitiveDoneToday={Boolean(todayIso && runs.some((r) => r.date === todayIso))}
+          streak={streak}
+          lastSleepHours={latestEntry?.sleepHours}
+          lastFog={latestEntry?.brainFog}
         />
 
         {/* Calm Check-In Form + Cognitive Checks */}

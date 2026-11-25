@@ -19,27 +19,29 @@ import {
   Moon,
   RotateCcw,
   CheckCircle2,
+  Activity,
 } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
+import CareCompanion from "@/components/CareCompanion";
 
 const MYTH_CARDS = [
   {
     id: "ovary",
-    tag: "Framing Shift",
-    front: "“It’s mainly a cyst or period problem.”",
-    back: "PMOS (Polyendocrine Metabolic Ovarian Syndrome) treats it as a whole-body endocrine and metabolic condition—affecting insulin sensitivity, energy, mood, sleep, and long-term cardiometabolic health, even when periods are regular or after cycles change.",
+    tag: "PMOS Framing Shift",
+    front: "“PMOS is just a cyst or period label.”",
+    back: "PMOS (Polyendocrine Metabolic Ovarian Syndrome) reframes it as a broader endocrine and metabolic condition—tying hormones, insulin resistance, energy, mood, sleep, and cardiometabolic health together even when cycles are irregular or shifting.",
   },
   {
     id: "brain",
-    tag: "Cognitive Link",
-    front: "“Brain fog is just being distracted.”",
-    back: "Research on PCOS/PMOS cohorts—including midlife cognitive studies—highlights links involving attention, memory, and processing speed alongside sleep quality and glycemic swings, which is why objective mini-checks + daily ratings help.",
+    tag: "PMOS & Cognition",
+    front: "“Brain fog in PMOS is just being distracted.”",
+    back: "Research on PCOS/PMOS cohorts—including midlife cognitive studies—points to patterns in attention, memory, and processing speed alongside sleep quality and blood-sugar swings, making objective mini-checks + daily ratings genuinely useful.",
   },
   {
     id: "perimeno",
-    tag: "Long-Term Lens",
-    front: "“Hormone shifts later in life don’t change risk.”",
-    back: "During perimenopause and shifting hormone stages, existing insulin resistance can compound alongside changes in blood pressure and cholesterol—making individual symptom tracking and lab snapshots valuable for doctor visits.",
+    tag: "PMOS Across Life Stages",
+    front: "“Hormone transitions later on don’t matter for PMOS.”",
+    back: "During perimenopause and changing hormone stages, metabolic vulnerability can overlap with blood pressure and cholesterol shifts—so tracking individual PMOS symptoms and lab snapshots gives your doctor clearer context.",
   },
 ];
 
@@ -47,23 +49,23 @@ const TIME_WINDOWS = [
   {
     key: "morning",
     label: "Morning",
-    cue: "Sleep recovery & baseline",
+    cue: "PMOS sleep & baseline",
     detail:
-      "Prior sleep hours set your starting cognitive runway. Logging sleep before caffeine or heavy carbs helps separate true sleep debt from midday dips.",
+      "Prior sleep hours set your starting cognitive runway. Logging sleep before caffeine or heavy carbs helps separate true sleep debt from midday PMOS dips.",
   },
   {
     key: "afternoon",
     label: "Afternoon",
-    cue: "Focus, cravings & crashes",
+    cue: "PMOS crashes & cravings",
     detail:
-      "Post-meal energy dips, sugar cravings, bloating, and word-finding slips often cluster here—tracking each symptom with its own 1–5 severity shows what actually spikes.",
+      "Post-meal energy dips, sugar cravings, bloating, and word-finding slips often show up here—rating each PMOS symptom individually (1–5) reveals what actually spikes.",
   },
   {
     key: "evening",
     label: "Evening",
-    cue: "Late meals, stress & wind-down",
+    cue: "Late meals & wind-down",
     detail:
-      "Late high-carb meals, high stress, or night sweats can echo into the next day's fog and focus scores.",
+      "Late high-carb meals, high stress, or night sweats can carry over into the next day's PMOS fog and focus scores.",
   },
   {
     key: "cycle",
@@ -127,7 +129,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-[#F7F5F0] dark:bg-[#111412] text-[#1C1F1D] dark:text-[#ECEAE4] transition-colors">
-      {/* Top Nav */}
+      {/* Streamlined Top Nav */}
       <header className="border-b border-[#E3DDD2] dark:border-[#252B27] bg-[#F7F5F0]/90 dark:bg-[#111412]/90 backdrop-blur-sm sticky top-0 z-20">
         <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5">
@@ -138,23 +140,17 @@ export default function HomePage() {
           </Link>
 
           <nav className="flex items-center gap-4 sm:gap-6 text-xs font-medium text-[#5A605C] dark:text-[#A4AAA6]">
-            <a
-              href="#learn-pmos"
-              className="hidden sm:inline hover:text-[#1C1F1D] dark:hover:text-[#ECEAE4] transition"
-            >
-              About PMOS
-            </a>
-            <a
-              href="#playground"
-              className="hidden sm:inline hover:text-[#1C1F1D] dark:hover:text-[#ECEAE4] transition"
-            >
-              Try Sandbox
-            </a>
             <Link
               href="/guide"
               className="hover:text-[#1C1F1D] dark:hover:text-[#ECEAE4] transition"
             >
               Toolkit &amp; Labs
+            </Link>
+            <Link
+              href="/guide"
+              className="hover:text-[#1C1F1D] dark:hover:text-[#ECEAE4] transition"
+            >
+              Guide
             </Link>
             <ThemeToggle />
             <Link
@@ -168,22 +164,22 @@ export default function HomePage() {
       </header>
 
       <main className="max-w-5xl mx-auto px-6 py-12 space-y-16">
-        {/* Hero */}
+        {/* Hero with Bigger PMOS Spotlight */}
         <section className="space-y-6 border-b border-[#E3DDD2] dark:border-[#252B27] pb-12">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white/90 dark:bg-[#181D1A] border border-[#E3DDD2] dark:border-[#252B27] text-[11px] font-semibold uppercase tracking-[0.16em] text-[#2F5D50] dark:text-[#66B89F]">
-            <Sparkles className="w-3.5 h-3.5" /> PMOS Awareness &amp; Interactive Pattern Companion
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/95 dark:bg-[#181D1A] border border-[#E3DDD2] dark:border-[#252B27] text-xs font-semibold uppercase tracking-[0.16em] text-[#2F5D50] dark:text-[#66B89F]">
+            <Sparkles className="w-3.5 h-3.5" /> PMOS · Polyendocrine Metabolic Ovarian Syndrome
           </div>
 
-          <h1 className="font-serif text-4xl sm:text-6xl font-normal leading-[1.08] max-w-4xl">
-            Understand your fog, energy, and hormones—without the guesswork.
+          <h1 className="font-serif text-4xl sm:text-6xl font-normal leading-[1.06] max-w-4xl">
+            <span className="text-[#2F5D50] dark:text-[#66B89F] font-medium">
+              PMOS
+            </span>{" "}
+            fog, energy, and hormones—tracked clearly without the guesswork.
           </h1>
 
-          <p className="text-sm sm:text-base text-[#5A605C] dark:text-[#A4AAA6] max-w-2xl leading-relaxed">
-            Built around the{" "}
-            <strong>PMOS (Polyendocrine Metabolic Ovarian Syndrome)</strong>{" "}
-            perspective, Clarity helps you spot how sleep, meals, cycle or
-            perimenopause cues, and individual symptoms connect—stored privately
-            in your browser with a 1-page summary for doctor visits.
+          <p className="text-base sm:text-lg text-[#4F5551] dark:text-[#B4BAB6] max-w-3xl leading-relaxed">
+            <strong>PMOS</strong> looks beyond isolated cycle dates to connect{" "}
+            <strong>hormones, metabolism, sleep, brain fog, and perimenopause/cardiometabolic health</strong>. Log individual symptoms (1–5), spot personal patterns in your browser, and print a 1-page summary for your doctor.
           </p>
 
           <div className="flex flex-wrap items-center gap-3 pt-1">
@@ -191,14 +187,82 @@ export default function HomePage() {
               href="/track"
               className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#1C1F1D] hover:bg-[#2F5D50] dark:bg-[#52A88E] dark:hover:bg-[#66B89F] text-[#F7F5F0] dark:text-[#0F1311] text-xs font-semibold tracking-wide transition"
             >
-              Start Daily Log <ArrowRight className="w-4 h-4" />
+              Start PMOS Daily Log <ArrowRight className="w-4 h-4" />
             </Link>
             <Link
               href="/guide"
               className="inline-flex items-center gap-2 px-5 py-3 rounded-full bg-white dark:bg-[#181D1A] border border-[#D5CEC2] dark:border-[#2E3631] hover:border-[#1C1F1D] dark:hover:border-[#ECEAE4] text-xs font-semibold transition"
             >
-              Explore Habits, Labs &amp; Sources
+              PMOS Habits, Labs &amp; Sources
             </Link>
+          </div>
+        </section>
+
+        {/* Dedicated Bigger PMOS Spotlight & Pillars + Care Companion */}
+        <section
+          id="pmos-spotlight"
+          className="bg-white/90 dark:bg-[#181D1A] border border-[#E3DDD2] dark:border-[#252B27] rounded-3xl p-7 sm:p-9 space-y-6"
+        >
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#2F5D50] dark:text-[#66B89F]">
+              PMOS Spotlight
+            </p>
+            <h2 className="font-serif text-3xl sm:text-4xl font-normal leading-tight">
+              Why{" "}
+              <span className="underline decoration-[#2F5D50] dark:decoration-[#66B89F] underline-offset-4">
+                PMOS
+              </span>{" "}
+              changes how we read everyday signals
+            </h2>
+            <p className="text-sm sm:text-base text-[#5A605C] dark:text-[#A4AAA6] max-w-3xl leading-relaxed">
+              Calling it <strong>Polyendocrine Metabolic Ovarian Syndrome (PMOS)</strong> keeps the focus on whole-body endocrine and metabolic interactions—not just reproductive symptoms—across every stage of life.
+            </p>
+          </div>
+
+          <div className="grid sm:grid-cols-3 gap-4">
+            <div className="p-5 rounded-2xl bg-[#F7F5F0] dark:bg-[#121614] border border-[#E3DDD2] dark:border-[#252B27] space-y-2">
+              <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#2F5D50] dark:text-[#66B89F]">
+                <Activity className="w-4 h-4" /> PMOS · Metabolic &amp; Glycemic
+              </div>
+              <p className="font-serif text-lg font-medium">
+                Afternoon crashes &amp; cravings
+              </p>
+              <p className="text-xs sm:text-sm text-[#5A605C] dark:text-[#A4AAA6] leading-relaxed">
+                Tracks bloating, sugar cravings, and energy dips individually alongside sleep and post-meal habits.
+              </p>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-[#F7F5F0] dark:bg-[#121614] border border-[#E3DDD2] dark:border-[#252B27] space-y-2">
+              <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#2F5D50] dark:text-[#66B89F]">
+                <Brain className="w-4 h-4" /> PMOS · Cognitive Clarity
+              </div>
+              <p className="font-serif text-lg font-medium">
+                Brain fog &amp; focus baselines
+              </p>
+              <p className="text-xs sm:text-sm text-[#5A605C] dark:text-[#A4AAA6] leading-relaxed">
+                Pairs 1–10 daily fog and focus ratings with quick reaction and Stroop checks against a 14-day personal baseline.
+              </p>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-[#F7F5F0] dark:bg-[#121614] border border-[#E3DDD2] dark:border-[#252B27] space-y-2">
+              <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#2F5D50] dark:text-[#66B89F]">
+                <HeartPulse className="w-4 h-4" /> PMOS · Perimenopause &amp; Heart
+              </div>
+              <p className="font-serif text-lg font-medium">
+                BP, lipids &amp; hormone shifts
+              </p>
+              <p className="text-xs sm:text-sm text-[#5A605C] dark:text-[#A4AAA6] leading-relaxed">
+                Supports perimenopause cues, blood pressure, and lipid snapshots for more informed doctor visits.
+              </p>
+            </div>
+          </div>
+
+          <div className="pt-2">
+            <CareCompanion
+              loggedToday={false}
+              cognitiveDoneToday={false}
+              streak={0}
+            />
           </div>
         </section>
 
@@ -206,11 +270,11 @@ export default function HomePage() {
         <section id="learn-pmos" className="space-y-5">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#2F5D50] dark:text-[#66B89F]">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#2F5D50] dark:text-[#66B89F]">
                 Interactive PMOS Primer
               </p>
-              <h2 className="font-serif text-2xl sm:text-3xl font-normal mt-1">
-                Tap any card to flip the framing
+              <h2 className="font-serif text-2xl sm:text-4xl font-normal mt-1">
+                Tap any PMOS card to flip
               </h2>
             </div>
             <span className="text-xs text-[#6E7570] dark:text-[#8E9691]">
@@ -226,7 +290,7 @@ export default function HomePage() {
                   key={card.id}
                   type="button"
                   onClick={() => toggleFlip(card.id)}
-                  className={`text-left p-6 rounded-2xl border transition cursor-pointer min-h-52 flex flex-col justify-between gap-4 ${
+                  className={`text-left p-6 rounded-2xl border transition cursor-pointer min-h-56 flex flex-col justify-between gap-4 ${
                     isFlipped
                       ? "bg-[#1C1F1D] dark:bg-[#232B27] text-[#F7F5F0] border-[#1C1F1D] dark:border-[#52A88E]"
                       : "bg-white/90 dark:bg-[#181D1A] text-[#1C1F1D] dark:text-[#ECEAE4] border-[#E3DDD2] dark:border-[#252B27] hover:border-[#2F5D50] dark:hover:border-[#66B89F]"
@@ -235,7 +299,7 @@ export default function HomePage() {
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <span
-                        className={`text-[10px] font-semibold uppercase tracking-widest ${
+                        className={`text-[11px] font-semibold uppercase tracking-widest ${
                           isFlipped
                             ? "text-[#A7D7C5]"
                             : "text-[#2F5D50] dark:text-[#66B89F]"
@@ -244,7 +308,7 @@ export default function HomePage() {
                         {card.tag}
                       </span>
                       <span
-                        className={`text-[11px] inline-flex items-center gap-1 ${
+                        className={`text-xs inline-flex items-center gap-1 ${
                           isFlipped
                             ? "text-[#D5CEC2]"
                             : "text-[#6E7570] dark:text-[#8E9691]"
@@ -255,19 +319,19 @@ export default function HomePage() {
                       </span>
                     </div>
 
-                    <p className="font-serif text-lg leading-snug">
+                    <p className="font-serif text-xl leading-snug">
                       {isFlipped ? card.back : card.front}
                     </p>
                   </div>
 
                   <p
-                    className={`text-[11px] ${
+                    className={`text-xs ${
                       isFlipped
                         ? "text-[#A7D7C5]"
                         : "text-[#6E7570] dark:text-[#8E9691]"
                     }`}
                   >
-                    {isFlipped ? "Tap again to flip back" : "Tap to read why it matters"}
+                    {isFlipped ? "Tap again to flip back" : "Tap to reveal PMOS insight"}
                   </p>
                 </button>
               );
@@ -282,11 +346,11 @@ export default function HomePage() {
         >
           {/* Left 5 Cols: Time-of-Day Interactive Layer */}
           <div className="lg:col-span-5 space-y-4">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#2F5D50] dark:text-[#66B89F]">
-              How Signals Shift
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#2F5D50] dark:text-[#66B89F]">
+              PMOS Across the Day
             </p>
-            <h2 className="font-serif text-2xl font-normal">
-              Pick a window to see what to watch
+            <h2 className="font-serif text-2xl sm:text-3xl font-normal">
+              Tap a window around PMOS cues
             </h2>
 
             <div className="grid grid-cols-2 gap-2">
@@ -305,7 +369,7 @@ export default function HomePage() {
                   >
                     <p className="text-xs font-semibold">{win.label}</p>
                     <p
-                      className={`text-[10px] mt-0.5 ${
+                      className={`text-[11px] mt-0.5 ${
                         active
                           ? "text-[#D9ECE6] dark:text-[#16211D]"
                           : "text-[#6E7570] dark:text-[#8E9691]"
@@ -319,10 +383,10 @@ export default function HomePage() {
             </div>
 
             <div className="p-4 rounded-2xl bg-[#F7F5F0] dark:bg-[#121614] border border-[#E3DDD2] dark:border-[#252B27] space-y-2">
-              <p className="font-serif text-base font-medium">
+              <p className="font-serif text-lg font-medium">
                 {currentWindow.label} — {currentWindow.cue}
               </p>
-              <p className="text-xs text-[#5A605C] dark:text-[#A4AAA6] leading-relaxed">
+              <p className="text-xs sm:text-sm text-[#5A605C] dark:text-[#A4AAA6] leading-relaxed">
                 {currentWindow.detail}
               </p>
             </div>
@@ -332,14 +396,14 @@ export default function HomePage() {
           <div className="lg:col-span-7 space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#2F5D50] dark:text-[#66B89F]">
-                  Interactive Sandbox
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#2F5D50] dark:text-[#66B89F]">
+                  Interactive PMOS Sandbox
                 </p>
-                <h3 className="font-serif text-xl font-normal">
-                  Toggle factors to preview focus vs. fog
+                <h3 className="font-serif text-2xl font-normal">
+                  Preview how factors shift focus &amp; fog
                 </h3>
               </div>
-              <span className="text-[11px] text-[#6E7570] dark:text-[#8E9691]">
+              <span className="text-xs text-[#6E7570] dark:text-[#8E9691]">
                 Illustrative preview
               </span>
             </div>
@@ -427,7 +491,7 @@ export default function HomePage() {
                 href="/track"
                 className="inline-flex items-center gap-1.5 px-5 py-2 rounded-full bg-[#2F5D50] hover:bg-[#1C1F1D] dark:bg-[#52A88E] dark:hover:bg-[#66B89F] text-[#F7F5F0] dark:text-[#0F1311] text-xs font-semibold transition"
               >
-                Log Your Real Day <ArrowRight className="w-3.5 h-3.5" />
+                Log Your Real PMOS Day <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             </div>
           </div>
@@ -438,14 +502,14 @@ export default function HomePage() {
       <footer className="border-t border-[#E3DDD2] dark:border-[#252B27] bg-[#F7F5F0] dark:bg-[#111412] py-8 px-6 text-xs text-[#6E7570] dark:text-[#8E9691]">
         <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <p>
-            Clarity — Educational PMOS &amp; metabolic-cognitive companion. Not medical advice or diagnosis.
+            Clarity — PMOS awareness &amp; metabolic-cognitive companion. Educational only; not medical advice or diagnosis.
           </p>
           <div className="flex items-center gap-5">
             <Link href="/track" className="hover:text-[#1C1F1D] dark:hover:text-[#ECEAE4]">
-              Tracker
+              PMOS Tracker
             </Link>
             <Link href="/guide" className="hover:text-[#1C1F1D] dark:hover:text-[#ECEAE4]">
-              Guide &amp; Citations
+              PMOS Guide &amp; Citations
             </Link>
           </div>
         </div>
