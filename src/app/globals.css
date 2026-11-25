@@ -32,6 +32,26 @@ body {
   min-height: 100vh;
 }
 
+/* Floating companion animation */
+@keyframes mochi-float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+.animate-mochi-float {
+  animation: mochi-float 3.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-mochi-float {
+    animation: none;
+  }
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
@@ -54,5 +74,39 @@ body {
   }
   @page {
     margin: 14mm;
+  }
+}
+
+@keyframes mochi-trot {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-7px) rotate(-2deg);
+  }
+}
+
+@keyframes mochi-breathe {
+  0%, 100% {
+    transform: translateY(0px) scaleY(1);
+  }
+  50% {
+    transform: translateY(-2px) scaleY(1.025);
+  }
+}
+
+.animate-mochi-trot {
+  animation: mochi-trot 0.42s ease-in-out infinite;
+}
+
+.animate-mochi-breathe {
+  animation: mochi-breathe 2.6s ease-in-out infinite;
+  transform-origin: bottom center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-mochi-trot,
+  .animate-mochi-breathe {
+    animation: none;
   }
 }

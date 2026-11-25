@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
+import { format, parseISO, differenceInCalendarDays } from "date-fns";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -23,6 +24,19 @@ import {
 } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
 import CareCompanion from "@/components/CareCompanion";
+
+interface StoredEntrySummary {
+  date: string;
+  brainFog?: number;
+  sleepHours?: number;
+}
+
+interface StoredRunSummary {
+  date: string;
+}
+
+const STORAGE_KEY = "clarity_pmos_entries_v8";
+const STATS_KEY = "clarity_pmos_stats_v8";
 
 const MYTH_CARDS = [
   {
@@ -80,10 +94,94 @@ export default function HomePage() {
   const [flippedIds, setFlippedIds] = useState<Record<string, boolean>>({});
   const [activeWindow, setActiveWindow] = useState<string>("afternoon");
 
+  // Synced CareCompanion state from localStorage
+  const [loggedToday, setLoggedToday] = useState(false);
+  const [cognitiveDoneToday, setCognitiveDoneToday] = useState(false);
+  const [streak, setStreak] = useState(0);
+  const [lastSleepHours, setLastSleepHours] = useState<number | undefined>(
+    undefined
+  );
+  const [lastFog, setLastFog] = useState<number | undefined>(undefined);
+
   // Interactive Sandbox Controls
   const [shortSleepSim, setShortSleepSim] = useState(true);
   const [lateCarbSim, setLateCarbSim] = useState(false);
   const [perimenoSim, setPerimenoSim] = useState(false);
+
+  useEffect(() => {
+    const todayIso = format(new Date(), "yyyy-MM-dd");
+
+    try {
+      const rawEntries = localStorage.getItem(STORAGE_KEY);
+      if (rawEntries) {
+        const parsed = JSON.parse(rawEntries);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const valid = parsed
+            .filter(
+              (item): item is StoredEntrySummary =>
+                Boolean(item) &&
+                typeof item === "object" &&
+                typeof item.date === "string" &&
+                /^\d{4}-\d{2}-\d{2}$/.test(item.date)
+            )
+            .sort((a, b) => a.date.localeCompare(b.date));
+
+          if (valid.length > 0) {
+            const latest = valid[valid.length - 1];
+            // eslint-disable-next-line react-hooks/set-state-in-effect
+            setLoggedToday(valid.some((e) => e.date === todayIso));
+            setLastSleepHours(
+              typeof latest.sleepHours === "number"
+                ? latest.sleepHours
+                : undefined
+            );
+            setLastFog(
+              typeof latest.brainFog === "number" ? latest.brainFog : undefined
+            );
+
+            const uniqueDates = Array.from(
+              new Set(valid.map((e) => e.date))
+            ).sort((a, b) => b.localeCompare(a));
+            const gapFromToday = differenceInCalendarDays(
+              parseISO(todayIso),
+              parseISO(uniqueDates[0])
+            );
+
+            if (gapFromToday <= 1) {
+              let count = 1;
+              for (let i = 0; i < uniqueDates.length - 1; i++) {
+                if (
+                  differenceInCalendarDays(
+                    parseISO(uniqueDates[i]),
+                    parseISO(uniqueDates[i + 1])
+                  ) === 1
+                ) {
+                  count++;
+                } else {
+                  break;
+                }
+              }
+              setStreak(count);
+            }
+          }
+        }
+      }
+
+      const rawStats = localStorage.getItem(STATS_KEY);
+      if (rawStats) {
+        const parsedStats = JSON.parse(rawStats);
+        if (parsedStats && Array.isArray(parsedStats.runs)) {
+          setCognitiveDoneToday(
+            parsedStats.runs.some(
+              (r: StoredRunSummary) => r && r.date === todayIso
+            )
+          );
+        }
+      }
+    } catch {
+      // ignore storage errors
+    }
+  }, []);
 
   const toggleFlip = (id: string) => {
     setFlippedIds((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -198,7 +296,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Dedicated Bigger PMOS Spotlight & Pillars + Care Companion */}
+        {/* Dedicated Bigger PMOS Spotlight & Pillars + Synced Care Companion */}
         <section
           id="pmos-spotlight"
           className="bg-white/90 dark:bg-[#181D1A] border border-[#E3DDD2] dark:border-[#252B27] rounded-3xl p-7 sm:p-9 space-y-6"
@@ -259,9 +357,11 @@ export default function HomePage() {
 
           <div className="pt-2">
             <CareCompanion
-              loggedToday={false}
-              cognitiveDoneToday={false}
-              streak={0}
+              loggedToday={loggedToday}
+              cognitiveDoneToday={cognitiveDoneToday}
+              streak={streak}
+              lastSleepHours={lastSleepHours}
+              lastFog={lastFog}
             />
           </div>
         </section>
